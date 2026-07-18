@@ -29,13 +29,14 @@ test("server-renders the complete Taigi learning experience", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>咱來學台語｜互動式台語教材<\/title>/i);
-  assert.match(html, /一句一句，/);
-  assert.match(html, /講出台語/);
-  assert.match(html, /先聽，再開喙講/);
-  assert.match(html, /隨堂小練習/);
-  assert.match(html, /生活語句，隨時揣/);
-  assert.match(html, /四階段，練好台語/);
+  assert.match(html, /<title>咱來學台語｜八冊完整互動教材<\/title>/i);
+  assert.match(html, /一頁一頁，/);
+  assert.match(html, /八冊，攏佇遮/);
+  assert.match(html, /原書的所在，就是互動的所在/);
+  assert.match(html, /原頁精讀/);
+  assert.match(html, /語詞卡/);
+  assert.match(html, /217/);
+  assert.match(html, /4,349/);
   assert.doesNotMatch(html, /Your site is taking shape|codex-preview/);
 });
 
@@ -57,8 +58,45 @@ test("includes responsive, accessible interaction styles", async () => {
     "utf8",
   );
 
-  assert.match(css, /@media \(max-width: 640px\)/);
-  assert.match(css, /\.mobile-nav/);
+  assert.match(css, /@media \(max-width: 760px\)/);
+  assert.match(css, /\.reader-page-canvas/);
+  assert.match(css, /\.audio-hotspot/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /prefers-reduced-motion/);
+});
+
+test("ships every PDF spread and its interactive audio map", async () => {
+  const curriculum = JSON.parse(
+    await readFile(
+      new URL("../public/data/curriculum.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const vocabulary = JSON.parse(
+    await readFile(
+      new URL("../public/data/vocabulary.json", import.meta.url),
+      "utf8",
+    ),
+  );
+
+  assert.equal(curriculum.books.length, 8);
+  assert.equal(curriculum.stats.pages, 217);
+  assert.equal(curriculum.stats.audioFiles, 4349);
+  assert.ok(curriculum.stats.hotspots > 4300);
+  assert.ok(vocabulary.length > 800);
+
+  const pages = curriculum.books.flatMap((book) => book.pages);
+  assert.equal(pages.length, 217);
+  assert.ok(pages.every((page) => page.image.endsWith(".webp")));
+  assert.ok(
+    pages
+      .flatMap((page) => page.hotspots)
+      .every((hotspot) => hotspot.x >= 0 && hotspot.y >= 0),
+  );
+
+  const firstPageImage = new URL(
+    `../public/${pages[0].image.replace(/^\.\//, "")}`,
+    import.meta.url,
+  );
+  assert.ok((await readFile(firstPageImage)).length > 10_000);
 });

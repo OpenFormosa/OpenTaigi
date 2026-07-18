@@ -9,7 +9,70 @@ import {
   useState,
 } from "react";
 
+type Mode = "library" | "reader" | "vocabulary" | "sentences";
 type Volume = "上冊" | "下冊";
+
+type Hotspot = {
+  id: string;
+  label: string;
+  filename: string;
+  audio: string;
+  available: boolean;
+  kind: "audio" | "headword" | "example";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type BookPage = {
+  number: number;
+  image: string;
+  width: number;
+  height: number;
+  hotspots: Hotspot[];
+};
+
+type Book = {
+  id: string;
+  number: string;
+  series: string;
+  title: string;
+  subtitle: string;
+  accent: string;
+  description: string;
+  pdfFile: string;
+  sourcePdf: string;
+  pageCount: number;
+  audioCount: number;
+  pages: BookPage[];
+};
+
+type Curriculum = {
+  title: string;
+  source: string;
+  stats: {
+    books: number;
+    pages: number;
+    hotspots: number;
+    audioFiles: number;
+  };
+  books: Book[];
+};
+
+type Vocabulary = {
+  id: string;
+  bookId: string;
+  volume: Volume;
+  number: string;
+  page: number;
+  headword: string;
+  romanization: string;
+  meaning: string;
+  examples: string;
+  audioA: string;
+  audioB: string;
+};
 
 type Sentence = {
   id: string;
@@ -25,68 +88,30 @@ type Sentence = {
 
 const SOURCE_ROOT =
   "https://github.com/Taiwanese-Corpus/Lan-Lai-Oh-Taigi";
-const RAW_AUDIO_ROOT =
+const RAW_SENTENCE_ROOT =
   "https://raw.githubusercontent.com/Taiwanese-Corpus/Lan-Lai-Oh-Taigi/master/mp3/03";
 
-const fallbackSentence: Sentence = {
-  id: "上冊-0301_01_01_03.mp3",
-  page: "3",
-  chapter: "一人際",
-  order: 1,
-  hanji: "多謝你！",
-  lomaji: "To-siā--lí!",
-  huagi: "謝謝你！",
-  audio: "0301_01_01_03.mp3",
-  volume: "上冊",
-};
-
-const materials = [
-  {
-    no: "01",
-    symbol: "聲",
-    title: "學拼音有撇步",
-    subtitle: "Phing-im",
-    href: `${SOURCE_ROOT}/blob/master/pdf/01%E6%8B%BC%E9%9F%B3.pdf`,
-  },
-  {
-    no: "02",
-    symbol: "詞",
-    title: "學語詞真輕鬆",
-    subtitle: "Gí-sû",
-    href: `${SOURCE_ROOT}/blob/master/pdf/02%E8%AA%9E%E8%A9%9E1.pdf`,
-  },
-  {
-    no: "03",
-    symbol: "句",
-    title: "讀語句上簡單",
-    subtitle: "Kù",
-    href: `${SOURCE_ROOT}/blob/master/pdf/03%E8%AA%9E%E5%8F%A51.pdf`,
-  },
-  {
-    no: "04",
-    symbol: "文",
-    title: "讀文章蓋趣味",
-    subtitle: "Bûn",
-    href: `${SOURCE_ROOT}/blob/master/pdf/04%E6%96%87%E7%AB%A01.pdf`,
-  },
-];
-
-const waveHeights = [
-  13, 24, 35, 18, 29, 11, 33, 21, 38, 26, 14, 31, 19, 34, 16, 27, 38, 22,
-  13, 30, 18, 35, 25, 12, 28, 20, 37, 16, 31, 23, 11, 34, 19, 29, 15, 36,
+const fallbackBooks = [
+  ["01", "拼音", "學拼音有撇步", "21", "#8076B5"],
+  ["02·上", "語詞", "學語詞真輕鬆", "25", "#877461"],
+  ["02·下", "語詞", "學語詞真輕鬆", "21", "#877461"],
+  ["03·上", "語句", "讀語句上簡單", "37", "#D6A622"],
+  ["03·下", "語句", "讀語句上簡單", "37", "#D6A622"],
+  ["04·上", "文章", "讀文章蓋趣味", "38", "#D77A3D"],
+  ["04·下", "文章", "讀文章蓋趣味", "36", "#D77A3D"],
+  ["附", "補充", "主管機關補充資料", "2", "#2F6B54"],
 ];
 
 function parseCsvLine(line: string) {
   const values: string[] = [];
   let value = "";
   let quoted = false;
-
-  for (let i = 0; i < line.length; i += 1) {
-    const character = line[i];
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
     if (character === '"') {
-      if (quoted && line[i + 1] === '"') {
+      if (quoted && line[index + 1] === '"') {
         value += '"';
-        i += 1;
+        index += 1;
       } else {
         quoted = !quoted;
       }
@@ -101,7 +126,7 @@ function parseCsvLine(line: string) {
   return values;
 }
 
-function parseCsv(text: string, volume: Volume): Sentence[] {
+function parseSentences(text: string, volume: Volume): Sentence[] {
   return text
     .replace(/^\uFEFF/, "")
     .split(/\r?\n/)
@@ -125,42 +150,12 @@ function parseCsv(text: string, volume: Volume): Sentence[] {
     .filter((sentence) => sentence.audio && sentence.hanji);
 }
 
-function chapterLabel(chapter: string) {
-  return chapter.replace(
-    /^(十一|十二|十三|十四|十五|十六|十|一|二|三|四|五|六|七|八|九)/,
-    "",
-  );
+function sentenceAudio(sentence: Sentence) {
+  const volume = sentence.volume === "上冊" ? "01" : "02";
+  return `${RAW_SENTENCE_ROOT}/${volume}/${encodeURIComponent(sentence.audio)}`;
 }
 
-function chapterEmoji(chapter: string) {
-  if (chapter.includes("人際")) return "👋";
-  if (chapter.includes("交通")) return "🚌";
-  if (chapter.includes("食物")) return "🍚";
-  if (chapter.includes("動作")) return "🏃";
-  if (chapter.includes("徛家")) return "🏠";
-  if (chapter.includes("天文")) return "🌤";
-  if (chapter.includes("用品")) return "🧺";
-  if (chapter.includes("娛樂")) return "🎵";
-  if (chapter.includes("行業")) return "🛠";
-  if (chapter.includes("品行")) return "🙂";
-  if (chapter.includes("思想")) return "💭";
-  if (chapter.includes("時間")) return "🕰";
-  if (chapter.includes("動物")) return "🌿";
-  if (chapter.includes("教育")) return "📚";
-  if (chapter.includes("經濟")) return "🪙";
-  return "🩺";
-}
-
-function shuffle<T>(items: T[]) {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
-function loadSet(key: string) {
+function loadStringSet(key: string) {
   try {
     return new Set<string>(JSON.parse(localStorage.getItem(key) ?? "[]"));
   } catch {
@@ -168,679 +163,823 @@ function loadSet(key: string) {
   }
 }
 
+function chapterName(value: string) {
+  return value.replace(
+    /^(十一|十二|十三|十四|十五|十六|十|一|二|三|四|五|六|七|八|九)/,
+    "",
+  );
+}
+
 export function TaigiApp() {
-  const [sentences, setSentences] = useState<Sentence[]>([fallbackSentence]);
-  const [current, setCurrent] = useState<Sentence>(fallbackSentence);
-  const [search, setSearch] = useState("");
-  const [volume, setVolume] = useState<"全部" | Volume>("全部");
-  const [chapter, setChapter] = useState("全部");
-  const [showRomanization, setShowRomanization] = useState(true);
-  const [showTranslation, setShowTranslation] = useState(true);
-  const [speed, setSpeed] = useState(1);
+  const [mode, setMode] = useState<Mode>("library");
+  const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
+  const [vocabulary, setVocabulary] = useState<Vocabulary[]>([]);
+  const [sentences, setSentences] = useState<Sentence[]>([]);
+  const [activeBookId, setActiveBookId] = useState("pronunciation");
+  const [pageNumber, setPageNumber] = useState(1);
+  const [activeAudio, setActiveAudio] = useState<{
+    url: string;
+    label: string;
+  } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [completed, setCompleted] = useState<Set<string>>(new Set());
-  const [quizSentence, setQuizSentence] =
-    useState<Sentence>(fallbackSentence);
-  const [quizOptions, setQuizOptions] = useState<string[]>([
-    "謝謝你！",
-    "你好嗎？",
-    "明天見！",
-  ]);
-  const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
-  const [quizScore, setQuizScore] = useState({ right: 0, total: 0 });
+  const [speed, setSpeed] = useState(1);
+  const [bookmarks, setBookmarks] = useState<Set<string>>(() =>
+    typeof window === "undefined"
+      ? new Set()
+      : loadStringSet("opentaigi-bookmarks"),
+  );
+  const [completed, setCompleted] = useState<Set<string>>(() =>
+    typeof window === "undefined"
+      ? new Set()
+      : loadStringSet("opentaigi-completed-pages"),
+  );
+  const [vocabSearch, setVocabSearch] = useState("");
+  const [vocabVolume, setVocabVolume] = useState<"全部" | Volume>("全部");
+  const [visibleVocabulary, setVisibleVocabulary] = useState(60);
+  const [revealedWords, setRevealedWords] = useState<Set<string>>(new Set());
+  const [sentenceSearch, setSentenceSearch] = useState("");
+  const [sentenceVolume, setSentenceVolume] =
+    useState<"全部" | Volume>("全部");
+  const [sentenceChapter, setSentenceChapter] = useState("全部");
+  const [visibleSentences, setVisibleSentences] = useState(60);
+  const [practiceSentence, setPracticeSentence] = useState<Sentence | null>(
+    null,
+  );
+  const [showPracticeAnswer, setShowPracticeAnswer] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     Promise.all([
+      fetch("./data/curriculum.json").then((response) => response.json()),
+      fetch("./data/vocabulary.json").then((response) => response.json()),
       fetch("./data/3-1.csv").then((response) => response.text()),
       fetch("./data/3-2.csv").then((response) => response.text()),
     ])
-      .then(([volumeOne, volumeTwo]) => {
-        const parsed = [
-          ...parseCsv(volumeOne, "上冊"),
-          ...parseCsv(volumeTwo, "下冊"),
+      .then(([curriculumData, vocabularyData, firstVolume, secondVolume]) => {
+        setCurriculum(curriculumData);
+        setVocabulary(vocabularyData);
+        const loadedSentences = [
+          ...parseSentences(firstVolume, "上冊"),
+          ...parseSentences(secondVolume, "下冊"),
         ];
-        if (parsed.length > 0) {
-          setSentences(parsed);
-          setCurrent(parsed[0]);
-        }
+        setSentences(loadedSentences);
+        setPracticeSentence(loadedSentences[0] ?? null);
       })
       .catch(() => {
-        setSentences([fallbackSentence]);
+        // The server-rendered library remains useful if a network request fails.
       });
-
-    setFavorites(loadSet("opentaigi-favorites"));
-    setCompleted(loadSet("opentaigi-completed"));
   }, []);
 
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.playbackRate = speed;
+  }, [speed]);
+
+  const activeBook = useMemo(
+    () => curriculum?.books.find((book) => book.id === activeBookId) ?? null,
+    [activeBookId, curriculum],
+  );
+  const activePage = activeBook?.pages[pageNumber - 1] ?? null;
+  const pageKey = `${activeBookId}-${pageNumber}`;
+
+  const playAudio = useCallback(
+    (url: string, label: string) => {
+      if (!url || !audioRef.current) return;
+      const player = audioRef.current;
+      if (activeAudio?.url !== url) player.src = url;
+      player.playbackRate = speed;
+      setActiveAudio({ url, label });
+      player.play().catch(() => setIsPlaying(false));
+    },
+    [activeAudio?.url, speed],
+  );
+
+  const goToPage = useCallback(
+    (nextPage: number) => {
+      if (!activeBook) return;
+      setPageNumber(Math.min(Math.max(nextPage, 1), activeBook.pageCount));
+    },
+    [activeBook],
+  );
+
+  useEffect(() => {
+    if (mode !== "reader") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) return;
+      if (event.key === "ArrowLeft") goToPage(pageNumber - 1);
+      if (event.key === "ArrowRight") goToPage(pageNumber + 1);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [goToPage, mode, pageNumber]);
+
+  const openBook = (bookId: string, page = 1) => {
+    setActiveBookId(bookId);
+    setPageNumber(page);
+    setMode("reader");
+    window.setTimeout(
+      () => document.querySelector("#workbench")?.scrollIntoView(),
+      0,
+    );
+  };
+
+  const toggleStoredSet = (
+    key: string,
+    value: string,
+    current: Set<string>,
+    setter: (next: Set<string>) => void,
+  ) => {
+    const next = new Set(current);
+    if (next.has(value)) next.delete(value);
+    else next.add(value);
+    setter(next);
+    localStorage.setItem(key, JSON.stringify([...next]));
+  };
+
+  const filteredVocabulary = useMemo(() => {
+    const query = vocabSearch.trim().toLocaleLowerCase();
+    return vocabulary.filter((entry) => {
+      const volumeMatches =
+        vocabVolume === "全部" || entry.volume === vocabVolume;
+      const textMatches =
+        !query ||
+        `${entry.headword} ${entry.romanization} ${entry.meaning} ${entry.examples}`
+          .toLocaleLowerCase()
+          .includes(query);
+      return volumeMatches && textMatches;
+    });
+  }, [vocabSearch, vocabVolume, vocabulary]);
+
   const chapters = useMemo(
-    () => Array.from(new Set(sentences.map((sentence) => sentence.chapter))),
+    () => Array.from(new Set(sentences.map((item) => item.chapter))),
     [sentences],
   );
 
-  const filtered = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase();
+  const filteredSentences = useMemo(() => {
+    const query = sentenceSearch.trim().toLocaleLowerCase();
     return sentences.filter((sentence) => {
-      const matchesVolume =
-        volume === "全部" || sentence.volume === volume;
-      const matchesChapter =
-        chapter === "全部" || sentence.chapter === chapter;
-      const matchesSearch =
+      const volumeMatches =
+        sentenceVolume === "全部" || sentence.volume === sentenceVolume;
+      const chapterMatches =
+        sentenceChapter === "全部" || sentence.chapter === sentenceChapter;
+      const textMatches =
         !query ||
         `${sentence.hanji} ${sentence.lomaji} ${sentence.huagi}`
           .toLocaleLowerCase()
           .includes(query);
-      return matchesVolume && matchesChapter && matchesSearch;
+      return volumeMatches && chapterMatches && textMatches;
     });
-  }, [chapter, search, sentences, volume]);
+  }, [
+    sentenceChapter,
+    sentenceSearch,
+    sentenceVolume,
+    sentences,
+  ]);
 
-  const makeQuiz = useCallback(
-    (source?: Sentence) => {
-      if (sentences.length < 3) return;
-      const next =
-        source ??
-        sentences[Math.floor(Math.random() * sentences.length)] ??
-        fallbackSentence;
-      const distractors = shuffle(
-        sentences
-          .filter(
-            (sentence) =>
-              sentence.id !== next.id && sentence.huagi !== next.huagi,
-          )
-          .map((sentence) => sentence.huagi),
-      ).slice(0, 2);
-      setQuizSentence(next);
-      setQuizOptions(shuffle([next.huagi, ...distractors]));
-      setQuizAnswer(null);
-    },
-    [sentences],
-  );
-
-  useEffect(() => {
-    if (sentences.length > 3) makeQuiz(sentences[3]);
-  }, [makeQuiz, sentences]);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current.playbackRate = speed;
-    }
-    setIsPlaying(false);
-  }, [current.id, speed]);
-
-  const audioUrl = `${RAW_AUDIO_ROOT}/${current.volume === "上冊" ? "01" : "02"}/${current.audio}`;
-
-  function persistSet(key: string, value: Set<string>) {
-    localStorage.setItem(key, JSON.stringify(Array.from(value)));
-  }
-
-  function toggleFavorite() {
-    const next = new Set(favorites);
-    if (next.has(current.id)) next.delete(current.id);
-    else next.add(current.id);
-    setFavorites(next);
-    persistSet("opentaigi-favorites", next);
-  }
-
-  function markCompleted(sentence: Sentence) {
-    const next = new Set(completed);
-    next.add(sentence.id);
-    setCompleted(next);
-    persistSet("opentaigi-completed", next);
-  }
-
-  function nextLesson() {
-    const collection = filtered.length > 0 ? filtered : sentences;
-    const currentIndex = collection.findIndex(
-      (sentence) => sentence.id === current.id,
+  const randomPractice = () => {
+    if (!filteredSentences.length) return;
+    setPracticeSentence(
+      filteredSentences[Math.floor(Math.random() * filteredSentences.length)],
     );
-    const nextIndex =
-      currentIndex < 0 ? 0 : (currentIndex + 1) % collection.length;
-    markCompleted(current);
-    setCurrent(collection[nextIndex] ?? fallbackSentence);
-    document
-      .querySelector("#learn")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+    setShowPracticeAnswer(false);
+  };
 
-  function chooseSentence(sentence: Sentence) {
-    setCurrent(sentence);
-    document
-      .querySelector("#learn")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function toggleAudio() {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.playbackRate = speed;
-    if (audio.paused) {
-      audio.play().then(() => setIsPlaying(true)).catch(() => {
-        setIsPlaying(false);
-      });
-    } else {
-      audio.pause();
-      setIsPlaying(false);
-    }
-  }
-
-  function answerQuiz(option: string) {
-    if (quizAnswer) return;
-    setQuizAnswer(option);
-    setQuizScore((score) => ({
-      right: score.right + Number(option === quizSentence.huagi),
-      total: score.total + 1,
-    }));
-    if (option === quizSentence.huagi) markCompleted(quizSentence);
-  }
-
-  const completionPercent = Math.min(
-    100,
-    Math.round((completed.size / Math.max(sentences.length, 1)) * 100),
-  );
+  const navItems: { id: Mode; label: string; index: string }[] = [
+    { id: "library", label: "教材書架", index: "壹" },
+    { id: "reader", label: "原頁精讀", index: "貳" },
+    { id: "vocabulary", label: "語詞卡", index: "參" },
+    { id: "sentences", label: "840 句", index: "肆" },
+  ];
 
   return (
-    <div className="site-shell">
-      <header className="topbar">
-        <a className="brand" href="#top" aria-label="咱來學台語首頁">
-          <span className="brand-mark" aria-hidden="true">
-            台
-          </span>
-          <span className="brand-copy">
+    <main className="site-shell">
+      <header className="masthead">
+        <a className="brand" href="#top" aria-label="回到頁首">
+          <span className="brand-seal">台</span>
+          <span>
             <strong>咱來學台語</strong>
-            <small>LÁN LÂI O̍H TÂI-GÍ</small>
+            <small>Lán lâi o̍h Tâi-gí</small>
           </span>
         </a>
-        <nav className="desktop-nav" aria-label="主要選單">
-          <a href="#learn">開始學習</a>
-          <a href="#library">語句庫</a>
-          <a href="#materials">教材</a>
+        <nav className="mast-nav" aria-label="主要導覽">
+          <a href="#library">教材</a>
+          <a href="#workbench">練習桌</a>
+          <a href="#about">關於</a>
         </nav>
-        <a className="start-button" href="#learn">
-          今仔日學一句
-        </a>
+        <button
+          className="mast-start"
+          onClick={() => openBook("pronunciation")}
+        >
+          開始點讀
+        </button>
       </header>
 
-      <main id="top">
-        <section className="hero page-width" aria-labelledby="hero-title">
-          <div>
-            <p className="eyebrow">台語，就從今仔日開始</p>
-            <h1 id="hero-title">
-              一句一句，
-              <br />
-              <span className="accent">講出</span>台語。
-            </h1>
-            <p className="hero-description">
-              把教育部《咱來學臺灣閩南語》變成隨身互動教材。
-              聽發音、看羅馬字、做小測驗，每工十分鐘，愈講愈自然。
+      <section className="hero page-width" id="top">
+        <div className="hero-copy">
+          <p className="kicker">教育部《咱來學臺灣閩南語》完整互動版</p>
+          <h1>
+            一頁一頁，
+            <br />
+            <em>講出台語。</em>
+          </h1>
+          <p className="hero-lead">
+            不是 PDF 下載站。八冊教材的 217 個原始跨頁，全數變成能直接點讀的課本；
+            再把語詞、840 句生活台語整理成可搜尋、可複習的練習。
+          </p>
+          <div className="hero-actions">
+            <button onClick={() => openBook("pronunciation")}>
+              翻開第一冊 <span aria-hidden="true">↗</span>
+            </button>
+            <button
+              className="text-button"
+              onClick={() => {
+                setMode("sentences");
+                document.querySelector("#workbench")?.scrollIntoView();
+              }}
+            >
+              先聽「多謝你」
+            </button>
+          </div>
+        </div>
+
+        <div className="hero-poster" aria-label="教材摘要">
+          <span className="poster-flower" aria-hidden="true">✿</span>
+          <p>今仔日來講</p>
+          <strong>多謝你！</strong>
+          <i>To-siā--lí!</i>
+          <button
+            aria-label="播放多謝你"
+            onClick={() =>
+              playAudio(
+                `${RAW_SENTENCE_ROOT}/01/0301_01_01_03.mp3`,
+                "多謝你！",
+              )
+            }
+          >
+            <span aria-hidden="true">▶</span> 聽發音
+          </button>
+        </div>
+
+        <div className="hero-stats" aria-label="教材統計">
+          <div><strong>8</strong><span>冊完整教材</span></div>
+          <div><strong>217</strong><span>個原始跨頁</span></div>
+          <div><strong>4,349</strong><span>段真人發音</span></div>
+          <div><strong>840</strong><span>句生活台語</span></div>
+        </div>
+      </section>
+
+      <section className="library-section" id="library">
+        <div className="page-width">
+          <div className="section-heading">
+            <div>
+              <p className="folio">THE COMPLETE EDITION · 2014</p>
+              <h2>八冊，攏佇遮。</h2>
+            </div>
+            <p>
+              每一列就是一本可互動的課本。保留原版字型、插圖與編排，
+              點藍字的所在就會播放對應音檔。
             </p>
-            <div className="hero-actions">
-              <a className="primary-button" href="#learn">
-                <span aria-hidden="true">▶</span> 開始今仔日課程
-              </a>
-              <a className="secondary-button" href="#library">
-                瀏覽 840 句 <span aria-hidden="true">→</span>
-              </a>
-            </div>
-            <div className="hero-notes" aria-label="網站特色">
-              <span className="hero-note">
-                <span>✓</span> 免費開放
-              </span>
-              <span className="hero-note">
-                <span>✓</span> 真人發音
-              </span>
-              <span className="hero-note">
-                <span>✓</span> 手機電腦攏好用
-              </span>
-            </div>
           </div>
 
-          <div className="hero-visual" aria-label="今日台語預覽">
-            <div className="float-chip top">
-              <span className="float-icon" aria-hidden="true">
-                🔊
-              </span>
-              <span>聽・唸・閣聽一擺</span>
+          <div className="book-index">
+            {(curriculum?.books ?? []).length > 0
+              ? curriculum?.books.map((book) => (
+                  <button
+                    key={book.id}
+                    className="book-row"
+                    onClick={() => openBook(book.id)}
+                    style={{ "--book-accent": book.accent } as CSSProperties}
+                  >
+                    <span className="book-number">{book.number}</span>
+                    <span className="book-kind">{book.series}</span>
+                    <span className="book-title">
+                      <strong>{book.title}</strong>
+                      <small>{book.description}</small>
+                    </span>
+                    <span className="book-meta">
+                      {book.pageCount} 頁
+                      {book.audioCount > 0 && ` · ${book.audioCount} 音檔`}
+                    </span>
+                    <span className="book-arrow" aria-hidden="true">↗</span>
+                  </button>
+                ))
+              : fallbackBooks.map(([number, kind, title, pages, accent]) => (
+                  <div
+                    className="book-row book-row-loading"
+                    key={`${number}-${kind}`}
+                    style={{ "--book-accent": accent } as CSSProperties}
+                  >
+                    <span className="book-number">{number}</span>
+                    <span className="book-kind">{kind}</span>
+                    <span className="book-title"><strong>{title}</strong></span>
+                    <span className="book-meta">{pages} 頁</span>
+                  </div>
+                ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="workbench" id="workbench">
+        <div className="mode-strip page-width" role="tablist" aria-label="學習模式">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              role="tab"
+              aria-selected={mode === item.id}
+              className={mode === item.id ? "active" : ""}
+              onClick={() => setMode(item.id)}
+            >
+              <span>{item.index}</span>
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {mode === "library" && (
+          <div className="mode-intro page-width">
+            <p className="folio">HOW TO USE</p>
+            <h2>原書的所在，就是互動的所在。</h2>
+            <div className="method-lines">
+              <article>
+                <span>01</span>
+                <h3>揀一冊</h3>
+                <p>照拼音、語詞、語句、文章的順序讀，抑是直接揀欲學的冊。</p>
+              </article>
+              <article>
+                <span>02</span>
+                <h3>點藍字</h3>
+                <p>頁面上的橘色小點標出原 PDF 發音區；按一下就聽真人錄音。</p>
+              </article>
+              <article>
+                <span>03</span>
+                <h3>留進度</h3>
+                <p>收藏頁面、標記讀完。紀錄留在這台裝置，下擺閣來接續。</p>
+              </article>
             </div>
-            <div className="phrase-poster">
-              <div className="poster-top">
-                <span>今仔日一句</span>
-                <span className="poster-tag">人際</span>
+            <button className="ink-button" onClick={() => openBook("pronunciation")}>
+              對拼音開始
+            </button>
+          </div>
+        )}
+
+        {mode === "reader" && (
+          <div className="reader-layout page-width">
+            <aside className="reader-rail">
+              <div className="rail-label">
+                <span>原頁精讀</span>
+                <small>ORIGINAL READER</small>
               </div>
-              <div className="poster-main">
-                <small>To-siā--lí!</small>
-                <h2>多謝你！</h2>
-                <p>謝謝你！</p>
+              <div className="rail-books" aria-label="選擇課本">
+                {curriculum?.books.map((book) => (
+                  <button
+                    key={book.id}
+                    className={activeBookId === book.id ? "active" : ""}
+                    onClick={() => {
+                      setActiveBookId(book.id);
+                      setPageNumber(1);
+                    }}
+                    style={{ "--book-accent": book.accent } as CSSProperties}
+                  >
+                    <span>{book.number}</span>
+                    {book.series}
+                  </button>
+                ))}
               </div>
-              <div className="poster-bottom">
-                <button
-                  className="poster-play"
-                  type="button"
-                  aria-label="播放多謝你發音"
-                  onClick={() => {
-                    setCurrent(fallbackSentence);
-                    window.setTimeout(toggleAudio, 0);
-                  }}
-                >
-                  ▶
-                </button>
-                <div className="poster-progress">
-                  <span>今日進度 2 / 5</span>
-                  <span className="mini-track">
-                    <i />
-                  </span>
+              {activeBook && (
+                <div className="rail-progress">
+                  <span>這冊進度</span>
+                  <strong>
+                    {
+                      [...completed].filter((key) =>
+                        key.startsWith(`${activeBook.id}-`),
+                      ).length
+                    }
+                    <small> / {activeBook.pageCount}</small>
+                  </strong>
+                  <div>
+                    <i
+                      style={{
+                        width: `${
+                          ([...completed].filter((key) =>
+                            key.startsWith(`${activeBook.id}-`),
+                          ).length /
+                            activeBook.pageCount) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="float-chip bottom">
-              <span className="float-icon" aria-hidden="true">
-                🌱
-              </span>
-              <span>每日 10 分鐘</span>
+              )}
+            </aside>
+
+            <div className="reader-main">
+              {activeBook && activePage ? (
+                <>
+                  <header className="reader-heading">
+                    <div>
+                      <p>{activeBook.number} · {activeBook.series}</p>
+                      <h2>{activeBook.title}</h2>
+                    </div>
+                    <div className="reader-actions">
+                      <button
+                        className={bookmarks.has(pageKey) ? "marked" : ""}
+                        onClick={() =>
+                          toggleStoredSet(
+                            "opentaigi-bookmarks",
+                            pageKey,
+                            bookmarks,
+                            setBookmarks,
+                          )
+                        }
+                      >
+                        {bookmarks.has(pageKey) ? "★ 已收藏" : "☆ 收藏這頁"}
+                      </button>
+                      <a
+                        href={activeBook.sourcePdf}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        原始 PDF ↗
+                      </a>
+                    </div>
+                  </header>
+
+                  <div
+                    className="reader-page-canvas"
+                    style={{
+                      aspectRatio: `${activePage.width} / ${activePage.height}`,
+                    }}
+                  >
+                    {/* The source spread is the primary teaching visual. */}
+                    {/* The pages are pre-optimized WebP and use dynamic source data. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={activePage.image}
+                      alt={`${activeBook.title}第 ${activePage.number} 頁`}
+                    />
+                    {activePage.hotspots.map((hotspot, index) => (
+                      <button
+                        key={hotspot.id}
+                        className={`audio-hotspot ${hotspot.kind} ${
+                          activeAudio?.url === hotspot.audio ? "playing" : ""
+                        }`}
+                        style={{
+                          left: `${hotspot.x}%`,
+                          top: `${hotspot.y}%`,
+                          width: `${hotspot.width}%`,
+                          height: `${hotspot.height}%`,
+                          "--hotspot-delay": `${Math.min(index * 18, 360)}ms`,
+                        } as CSSProperties}
+                        aria-label={`播放：${hotspot.label}`}
+                        title={hotspot.label}
+                        disabled={!hotspot.available}
+                        onClick={() =>
+                          playAudio(hotspot.audio, hotspot.label)
+                        }
+                      >
+                        <span aria-hidden="true">▶</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="page-controls">
+                    <button
+                      onClick={() => goToPage(pageNumber - 1)}
+                      disabled={pageNumber === 1}
+                      aria-label="上一頁"
+                    >
+                      ← <span>上一頁</span>
+                    </button>
+                    <label>
+                      <span>PAGE</span>
+                      <select
+                        value={pageNumber}
+                        onChange={(event) =>
+                          goToPage(Number(event.target.value))
+                        }
+                        aria-label="前往頁面"
+                      >
+                        {activeBook.pages.map((page) => (
+                          <option key={page.number} value={page.number}>
+                            {page.number} / {activeBook.pageCount}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      onClick={() => goToPage(pageNumber + 1)}
+                      disabled={pageNumber === activeBook.pageCount}
+                      aria-label="下一頁"
+                    >
+                      <span>下一頁</span> →
+                    </button>
+                  </div>
+
+                  <div className="reader-note">
+                    <p>
+                      <span className="hotspot-key">▶</span>
+                      頁上的橘點都是原書發音位置，共 {activePage.hotspots.length} 處。
+                      電腦也可用左右方向鍵翻頁。
+                    </p>
+                    <button
+                      className={completed.has(pageKey) ? "done" : ""}
+                      onClick={() =>
+                        toggleStoredSet(
+                          "opentaigi-completed-pages",
+                          pageKey,
+                          completed,
+                          setCompleted,
+                        )
+                      }
+                    >
+                      {completed.has(pageKey) ? "✓ 這頁讀過矣" : "標記這頁讀完"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="reader-loading">咧整理冊頁，請稍等一下⋯</div>
+              )}
             </div>
           </div>
-        </section>
+        )}
 
-        <section
-          className="learning-section"
-          id="learn"
-          aria-labelledby="learn-title"
-        >
-          <div className="learning-inner">
-            <p className="section-kicker">TSIT KÙ / 這一句</p>
-            <div className="section-heading">
-              <h2 id="learn-title">先聽，再開喙講。</h2>
+        {mode === "vocabulary" && (
+          <div className="study-mode page-width">
+            <div className="study-heading">
+              <div>
+                <p className="folio">VOCABULARY · BOOK 02</p>
+                <h2>語詞，逐條斟酌聽。</h2>
+              </div>
               <p>
-                按播放聽真人發音，切換羅馬字與華語提示。聽熟了就按下一句，
-                進度會留在這台裝置。
+                A 音檔讀詞頭，B 音檔讀例詞。先看台文與羅馬字，
+                再揭開華語意思。
               </p>
             </div>
-
-            <div className="learning-grid">
-              <article className="lesson-card" aria-live="polite">
-                <div className="lesson-toolbar">
-                  <div className="lesson-meta">
-                    <span className="tag">
-                      {chapterEmoji(current.chapter)}{" "}
-                      {chapterLabel(current.chapter)}
-                    </span>
-                    <span className="tag alt">{current.volume}</span>
-                  </div>
+            <div className="filter-line">
+              <label className="search-field">
+                <span>揣語詞</span>
+                <input
+                  value={vocabSearch}
+                  onChange={(event) => {
+                    setVocabSearch(event.target.value);
+                    setVisibleVocabulary(60);
+                  }}
+                  placeholder="台文、羅馬字、華語⋯"
+                />
+              </label>
+              <div className="segmented" aria-label="語詞冊別">
+                {(["全部", "上冊", "下冊"] as const).map((item) => (
                   <button
-                    className={`icon-button ${favorites.has(current.id) ? "active" : ""}`}
-                    type="button"
-                    aria-label={
-                      favorites.has(current.id) ? "取消收藏" : "收藏這一句"
-                    }
-                    aria-pressed={favorites.has(current.id)}
-                    onClick={toggleFavorite}
+                    key={item}
+                    className={vocabVolume === item ? "active" : ""}
+                    onClick={() => setVocabVolume(item)}
                   >
-                    {favorites.has(current.id) ? "★" : "☆"}
+                    {item}
                   </button>
-                </div>
-
-                <div className="sentence-stage">
-                  <h3>{current.hanji}</h3>
-                  <p className="romanization">
-                    {showRomanization ? (
-                      current.lomaji
-                    ) : (
-                      <span className="hidden-line" aria-label="羅馬字已隱藏" />
-                    )}
-                  </p>
-                  <p className="translation">
-                    {showTranslation ? (
-                      current.huagi
-                    ) : (
-                      <span className="hidden-line" aria-label="華語已隱藏" />
-                    )}
-                  </p>
-                </div>
-
-                <div className="audio-console">
-                  <button
-                    className="audio-play"
-                    type="button"
-                    aria-label={isPlaying ? "暫停發音" : "播放發音"}
-                    onClick={toggleAudio}
-                  >
-                    {isPlaying ? "Ⅱ" : "▶"}
-                  </button>
-                  <div
-                    className={`waveform ${isPlaying ? "playing" : ""}`}
-                    aria-hidden="true"
-                  >
-                    {waveHeights.map((height, index) => (
-                      <i
-                        key={`${height}-${index}`}
-                        style={
-                          {
-                            "--wave-height": `${height}px`,
-                            "--wave-delay": `${(index % 8) * -70}ms`,
-                          } as CSSProperties
-                        }
-                      />
-                    ))}
-                  </div>
-                  <div className="speed-controls" aria-label="播放速度">
-                    {[0.75, 1, 1.25].map((rate) => (
-                      <button
-                        className={speed === rate ? "active" : ""}
-                        type="button"
-                        key={rate}
-                        aria-pressed={speed === rate}
-                        onClick={() => setSpeed(rate)}
-                      >
-                        {rate}×
-                      </button>
-                    ))}
-                  </div>
-                  <audio
-                    ref={audioRef}
-                    src={audioUrl}
-                    preload="none"
-                    onPlay={() => setIsPlaying(true)}
-                    onPause={() => setIsPlaying(false)}
-                    onEnded={() => {
-                      setIsPlaying(false);
-                      markCompleted(current);
-                    }}
-                  />
-                </div>
-
-                <div className="lesson-actions">
-                  <div className="view-toggles">
-                    <button
-                      className={`toggle-button ${showRomanization ? "active" : ""}`}
-                      type="button"
-                      aria-pressed={showRomanization}
-                      onClick={() => setShowRomanization((visible) => !visible)}
-                    >
-                      羅馬字
-                    </button>
-                    <button
-                      className={`toggle-button ${showTranslation ? "active" : ""}`}
-                      type="button"
-                      aria-pressed={showTranslation}
-                      onClick={() => setShowTranslation((visible) => !visible)}
-                    >
-                      華語提示
-                    </button>
-                  </div>
-                  <button
-                    className="next-button"
-                    type="button"
-                    onClick={nextLesson}
-                  >
-                    我會曉矣，下一句 →
-                  </button>
-                </div>
-              </article>
-
-              <aside className="quiz-card" aria-labelledby="quiz-title">
-                <div className="quiz-head">
-                  <div className="quiz-label">
-                    <span aria-hidden="true">✦</span>
-                    <span id="quiz-title">隨堂小練習</span>
-                  </div>
-                  <span className="score-pill">
-                    答著 {quizScore.right}/{quizScore.total}
-                  </span>
-                </div>
-
-                <div className="quiz-prompt">
-                  <small>這句是啥物意思？</small>
-                  <h3>{quizSentence.hanji}</h3>
-                </div>
-
-                <div className="quiz-options">
-                  {quizOptions.map((option, index) => {
-                    const isCorrect = option === quizSentence.huagi;
-                    const isWrong =
-                      quizAnswer === option && option !== quizSentence.huagi;
-                    return (
-                      <button
-                        className={`quiz-option ${
-                          quizAnswer && isCorrect ? "correct" : ""
-                        } ${isWrong ? "wrong" : ""}`}
-                        type="button"
-                        key={`${option}-${index}`}
-                        disabled={Boolean(quizAnswer)}
-                        onClick={() => answerQuiz(option)}
-                      >
-                        {option}
-                        <span className="quiz-option-mark">
-                          {quizAnswer && isCorrect
-                            ? "✓"
-                            : isWrong
-                              ? "×"
-                              : String.fromCharCode(65 + index)}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <p className="quiz-feedback" role="status">
-                  {quizAnswer ? (
-                    quizAnswer === quizSentence.huagi ? (
-                      <>
-                        <strong>誠𠢕！答著矣。</strong>
-                        <br />
-                        {quizSentence.lomaji}
-                      </>
-                    ) : (
-                      <>
-                        正確答案是「{quizSentence.huagi}」。
-                        <br />
-                        閣看一擺羅馬字：{quizSentence.lomaji}
-                      </>
-                    )
-                  ) : (
-                    "揀一个上適合的華語意思。"
-                  )}
-                </p>
-
-                <button
-                  className="next-button quiz-next"
-                  type="button"
-                  onClick={() => makeQuiz()}
-                >
-                  換一題 →
-                </button>
-              </aside>
-            </div>
-          </div>
-        </section>
-
-        <section
-          className="section page-width"
-          id="library"
-          aria-labelledby="library-title"
-        >
-          <p className="section-kicker">840 KÙ / 840 句</p>
-          <div className="section-heading">
-            <h2 id="library-title">生活語句，隨時揣。</h2>
-            <p>
-              從人際、食物、交通到健康，共 16 類。可用漢字、羅馬字或華語搜尋，
-              點一句就開始聽。
-            </p>
-          </div>
-
-          <div className="library-controls">
-            <label className="search-field">
-              <span aria-hidden="true">⌕</span>
-              <input
-                type="search"
-                value={search}
-                placeholder="搜尋：多謝、食飯、tshē..."
-                aria-label="搜尋台語語句"
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-            <select
-              className="volume-select"
-              value={volume}
-              aria-label="選擇冊別"
-              onChange={(event) =>
-                setVolume(event.target.value as "全部" | Volume)
-              }
-            >
-              <option value="全部">頂下冊攏總</option>
-              <option value="上冊">上冊</option>
-              <option value="下冊">下冊</option>
-            </select>
-          </div>
-
-          <div className="chapter-scroller" aria-label="生活主題">
-            <button
-              className={`chapter-chip ${chapter === "全部" ? "active" : ""}`}
-              type="button"
-              aria-pressed={chapter === "全部"}
-              onClick={() => setChapter("全部")}
-            >
-              全部主題
-            </button>
-            {chapters.map((item) => (
-              <button
-                className={`chapter-chip ${chapter === item ? "active" : ""}`}
-                type="button"
-                aria-pressed={chapter === item}
-                key={item}
-                onClick={() => setChapter(item)}
-              >
-                {chapterEmoji(item)} {chapterLabel(item)}
-              </button>
-            ))}
-          </div>
-
-          <div className="library-grid">
-            {filtered.slice(0, 12).map((sentence) => (
-              <button
-                className={`phrase-card ${
-                  current.id === sentence.id ? "active" : ""
-                }`}
-                type="button"
-                key={sentence.id}
-                onClick={() => chooseSentence(sentence)}
-              >
-                <small>
-                  {sentence.volume}・{chapterLabel(sentence.chapter)}・
-                  {sentence.order}
-                </small>
-                <h3>{sentence.hanji}</h3>
-                <p>{sentence.lomaji}</p>
-                <footer>
-                  <span>{sentence.huagi}</span>
-                  <span
-                    className={
-                      completed.has(sentence.id) ? "completed-dot" : ""
-                    }
-                  >
-                    {completed.has(sentence.id) ? "✓ 已學" : "▶ 聽看覓"}
-                  </span>
-                </footer>
-              </button>
-            ))}
-            {filtered.length === 0 && (
-              <div className="empty-state">
-                <strong>揣無這句</strong>
-                <p>換一个關鍵字，抑是選「全部主題」閣試一擺。</p>
+                ))}
               </div>
+              <strong>{filteredVocabulary.length}<small> 詞</small></strong>
+            </div>
+
+            <div className="word-list">
+              {filteredVocabulary.slice(0, visibleVocabulary).map((entry) => {
+                const revealed = revealedWords.has(entry.id);
+                return (
+                  <article className="word-row" key={entry.id}>
+                    <button
+                      className="word-main"
+                      onClick={() => playAudio(entry.audioA, entry.headword)}
+                      aria-label={`播放${entry.headword}`}
+                    >
+                      <span>{entry.volume === "上冊" ? "上" : "下"} · {entry.number}</span>
+                      <strong>{entry.headword}</strong>
+                      <i>{entry.romanization || "—"}</i>
+                      <b aria-hidden="true">▶</b>
+                    </button>
+                    <div className={`word-answer ${revealed ? "revealed" : ""}`}>
+                      <button
+                        onClick={() => {
+                          const next = new Set(revealedWords);
+                          if (revealed) next.delete(entry.id);
+                          else next.add(entry.id);
+                          setRevealedWords(next);
+                        }}
+                      >
+                        {revealed ? "收起解說" : "揭開華語"}
+                      </button>
+                      <div>
+                        <strong>{entry.meaning || "請看原頁解說"}</strong>
+                        {entry.examples && <p>{entry.examples}</p>}
+                      </div>
+                      {entry.audioB && (
+                        <button
+                          className="example-play"
+                          onClick={() =>
+                            playAudio(
+                              entry.audioB,
+                              `${entry.headword}的例詞`,
+                            )
+                          }
+                        >
+                          ▶ 例詞
+                        </button>
+                      )}
+                      <button
+                        className="page-jump"
+                        onClick={() => openBook(entry.bookId, entry.page)}
+                      >
+                        原書 p.{entry.page} ↗
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            {visibleVocabulary < filteredVocabulary.length && (
+              <button
+                className="load-more"
+                onClick={() => setVisibleVocabulary((count) => count + 60)}
+              >
+                閣看 60 詞
+              </button>
             )}
           </div>
-          <p className="result-count">
-            顯示 {Math.min(filtered.length, 12)} 句，共 {filtered.length} 句符合
-            ・ 已學 {completed.size} 句（{completionPercent}%）・ 收藏{" "}
-            {favorites.size} 句
-          </p>
-        </section>
+        )}
 
-        <section
-          className="section page-width materials-section"
-          id="materials"
-          aria-labelledby="materials-title"
-        >
-          <p className="section-kicker">SIŌNG KHÂN / 教材冊</p>
-          <div className="section-heading">
-            <h2 id="materials-title">四階段，練好台語。</h2>
+        {mode === "sentences" && (
+          <div className="study-mode page-width">
+            <div className="study-heading sentence-heading">
+              <div>
+                <p className="folio">840 SENTENCES · BOOK 03</p>
+                <h2>一句一句，講出台語。</h2>
+              </div>
+              <div className="practice-slip">
+                <small>隨堂小練習</small>
+                <strong>{practiceSentence?.hanji ?? "多謝你！"}</strong>
+                <i>
+                  {showPracticeAnswer
+                    ? practiceSentence?.lomaji
+                    : "先聽，試看家己講"}
+                </i>
+                <div>
+                  <button
+                    onClick={() =>
+                      practiceSentence &&
+                      playAudio(
+                        sentenceAudio(practiceSentence),
+                        practiceSentence.hanji,
+                      )
+                    }
+                  >
+                    ▶ 聽
+                  </button>
+                  <button onClick={() => setShowPracticeAnswer((show) => !show)}>
+                    {showPracticeAnswer ? "收起" : "看答案"}
+                  </button>
+                  <button onClick={randomPractice}>換一句</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="filter-line sentence-filters">
+              <label className="search-field">
+                <span>生活語句，隨時揣</span>
+                <input
+                  value={sentenceSearch}
+                  onChange={(event) => {
+                    setSentenceSearch(event.target.value);
+                    setVisibleSentences(60);
+                  }}
+                  placeholder="例如：食飯、明仔載、車頭⋯"
+                />
+              </label>
+              <select
+                value={sentenceVolume}
+                onChange={(event) =>
+                  setSentenceVolume(event.target.value as "全部" | Volume)
+                }
+                aria-label="選擇冊別"
+              >
+                <option>全部</option>
+                <option>上冊</option>
+                <option>下冊</option>
+              </select>
+              <select
+                value={sentenceChapter}
+                onChange={(event) => setSentenceChapter(event.target.value)}
+                aria-label="選擇主題"
+              >
+                <option>全部</option>
+                {chapters.map((item) => (
+                  <option key={item} value={item}>
+                    {chapterName(item)}
+                  </option>
+                ))}
+              </select>
+              <strong>{filteredSentences.length}<small> 句</small></strong>
+            </div>
+
+            <div className="sentence-list">
+              {filteredSentences.slice(0, visibleSentences).map((sentence) => (
+                <article className="sentence-row" key={sentence.id}>
+                  <span className="sentence-number">
+                    {sentence.volume === "上冊" ? "上" : "下"} ·{" "}
+                    {String(sentence.order).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <strong>{sentence.hanji}</strong>
+                    <i>{sentence.lomaji}</i>
+                    <small>{sentence.huagi}</small>
+                  </div>
+                  <span className="chapter-tag">
+                    {chapterName(sentence.chapter)}
+                  </span>
+                  <button
+                    onClick={() =>
+                      playAudio(sentenceAudio(sentence), sentence.hanji)
+                    }
+                    aria-label={`播放${sentence.hanji}`}
+                  >
+                    ▶
+                  </button>
+                </article>
+              ))}
+            </div>
+            {visibleSentences < filteredSentences.length && (
+              <button
+                className="load-more"
+                onClick={() => setVisibleSentences((count) => count + 60)}
+              >
+                閣看 60 句
+              </button>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="source-note" id="about">
+        <div className="page-width">
+          <span className="source-seal">台</span>
+          <div>
+            <p className="folio">OPEN MATERIALS, CAREFUL EDITION</p>
+            <h2>原教材無改，學習方式變好用。</h2>
             <p>
-              從聲音、語詞、語句一路讀到文章。點開原始教材 PDF，
-              搭配本站互動語句練習。
+              本站保留原始教材每一頁，發音熱點依 PDF 內嵌座標重建；
+              音檔直接取自 Taiwanese-Corpus 的公開典藏。內容若有差異，
+              以原始教材為準。
             </p>
           </div>
-
-          <div className="material-grid">
-            {materials.map((material) => (
-              <a
-                className="material-card"
-                href={material.href}
-                target="_blank"
-                rel="noreferrer"
-                key={material.no}
-              >
-                <span className="material-number">STEP {material.no}</span>
-                <span className="material-symbol" aria-hidden="true">
-                  {material.symbol}
-                </span>
-                <h3>{material.title}</h3>
-                <p>{material.subtitle}</p>
-                <span className="material-arrow" aria-hidden="true">
-                  ↗
-                </span>
-              </a>
-            ))}
-          </div>
-
-          <div className="source-banner">
-            <div>
-              <h3>教材有根據，內容可追溯</h3>
-              <p>
-                本站整理自教育部《咱來學臺灣閩南語》與
-                Taiwanese-Corpus 公開資料庫；語句、羅馬字與發音皆保留來源。
-              </p>
-            </div>
-            <div className="source-links">
-              <a href={SOURCE_ROOT} target="_blank" rel="noreferrer">
-                GitHub 資料源 ↗
-              </a>
-              <a
-                href="https://language.moe.gov.tw/uploads/files/17580025581006.pdf"
-                target="_blank"
-                rel="noreferrer"
-              >
-                教育部手冊 ↗
-              </a>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <footer className="site-footer">
-        <div>
-          <div className="footer-brand">咱來學台語</div>
-          <div>Lán lâi o̍h Tâi-gí — 台語，咱做伙講。</div>
+          <a href={SOURCE_ROOT} target="_blank" rel="noreferrer">
+            看 GitHub 原始資料 ↗
+          </a>
         </div>
+      </section>
+
+      <footer className="page-width">
         <div>
-          教材內容來源：教育部、Taiwanese-Corpus
-          <br />
-          學習進度僅儲存在你的裝置
+          <strong>咱來學台語</strong>
+          <span>Lán lâi o̍h Tâi-gí</span>
         </div>
+        <p>八冊 · 217 跨頁 · 4,349 真人發音 · 840 生活語句</p>
+        <a href="#top">轉去頂懸 ↑</a>
       </footer>
 
-      <nav className="mobile-nav" aria-label="手機快速選單">
-        <a href="#learn">
-          <span aria-hidden="true">▶</span>學一句
-        </a>
-        <a href="#library">
-          <span aria-hidden="true">⌕</span>語句庫
-        </a>
-        <a href="#materials">
-          <span aria-hidden="true">冊</span>教材
-        </a>
-      </nav>
-    </div>
+      <div className={`audio-dock ${activeAudio ? "visible" : ""}`}>
+        <button
+          className="dock-play"
+          onClick={() => {
+            const player = audioRef.current;
+            if (!player || !activeAudio) return;
+            if (player.paused) player.play();
+            else player.pause();
+          }}
+          aria-label={isPlaying ? "暫停" : "播放"}
+        >
+          {isPlaying ? "Ⅱ" : "▶"}
+        </button>
+        <div>
+          <small>NOW PLAYING</small>
+          <strong>{activeAudio?.label ?? "揀一段來聽"}</strong>
+        </div>
+        <label>
+          速度
+          <select
+            value={speed}
+            onChange={(event) => setSpeed(Number(event.target.value))}
+          >
+            <option value={0.75}>0.75×</option>
+            <option value={1}>1×</option>
+            <option value={1.25}>1.25×</option>
+          </select>
+        </label>
+        <audio
+          ref={audioRef}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => setIsPlaying(false)}
+        />
+      </div>
+    </main>
   );
 }
