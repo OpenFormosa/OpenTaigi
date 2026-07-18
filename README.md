@@ -4,6 +4,8 @@
 [Taiwanese-Corpus/Lan-Lai-Oh-Taigi](https://github.com/Taiwanese-Corpus/Lan-Lai-Oh-Taigi)
 公開資料整理成適合手機與電腦的互動式教學網站。
 
+**網站：<https://eric-lam.com/OpenTaigi/>**
+
 ## 學習功能
 
 - 840 句生活台語全文搜尋與 16 類主題篩選

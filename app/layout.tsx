@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://voidful.github.io/OpenTaigi/"),
+  metadataBase: new URL("https://eric-lam.com/OpenTaigi/"),
   title: "咱來學台語｜互動式台語教材",
   description:
     "聽發音、讀羅馬字、做小測驗。把教育部《咱來學臺灣閩南語》840 句生活台語帶著走。",
