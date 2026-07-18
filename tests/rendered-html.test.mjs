@@ -105,3 +105,19 @@ test("ships every PDF spread and its interactive audio map", async () => {
   );
   assert.ok((await readFile(firstPageImage)).length > 10_000);
 });
+
+test("supports continuing, zooming, decluttering, and empty search states", async () => {
+  const [component, css] = await Promise.all([
+    readFile(new URL("../app/TaigiApp.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(component, /opentaigi-last-place/);
+  assert.match(component, /page-scrubber/);
+  assert.match(component, /showHotspots/);
+  assert.match(component, /empty-state/);
+  assert.match(component, /dock-progress/);
+  assert.match(css, /\.mode-strip\s*\{[^}]*position: sticky/s);
+  assert.match(css, /\.reader-page-viewport\.zoomed/);
+  assert.match(css, /\.empty-state/);
+});

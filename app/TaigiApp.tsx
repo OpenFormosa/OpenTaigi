@@ -86,6 +86,11 @@ type Sentence = {
   volume: Volume;
 };
 
+type LastPlace = {
+  bookId: string;
+  page: number;
+};
+
 const SOURCE_ROOT =
   "https://github.com/Taiwanese-Corpus/Lan-Lai-Oh-Taigi";
 const RAW_SENTENCE_ROOT =
@@ -163,6 +168,24 @@ function loadStringSet(key: string) {
   }
 }
 
+function loadLastPlace(): LastPlace | null {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem("opentaigi-last-place") ?? "null",
+    );
+    if (
+      saved &&
+      typeof saved.bookId === "string" &&
+      Number.isInteger(saved.page)
+    ) {
+      return saved;
+    }
+  } catch {
+    // A malformed local preference should never block the learning experience.
+  }
+  return null;
+}
+
 function chapterName(value: string) {
   return value.replace(
     /^(十一|十二|十三|十四|十五|十六|十|一|二|三|四|五|六|七|八|九)/,
@@ -206,6 +229,15 @@ export function TaigiApp() {
     null,
   );
   const [showPracticeAnswer, setShowPracticeAnswer] = useState(false);
+  const [lastPlace, setLastPlace] = useState<LastPlace | null>(null);
+  const [showHotspots, setShowHotspots] = useState(() =>
+    typeof window === "undefined"
+      ? true
+      : localStorage.getItem("opentaigi-show-hotspots") !== "false",
+  );
+  const [readerZoom, setReaderZoom] = useState(1);
+  const [audioTime, setAudioTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -224,6 +256,7 @@ export function TaigiApp() {
         ];
         setSentences(loadedSentences);
         setPracticeSentence(loadedSentences[0] ?? null);
+        setLastPlace(loadLastPlace());
       })
       .catch(() => {
         // The server-rendered library remains useful if a network request fails.
@@ -240,12 +273,23 @@ export function TaigiApp() {
   );
   const activePage = activeBook?.pages[pageNumber - 1] ?? null;
   const pageKey = `${activeBookId}-${pageNumber}`;
+  const lastBook = useMemo(
+    () =>
+      lastPlace
+        ? curriculum?.books.find((book) => book.id === lastPlace.bookId) ?? null
+        : null,
+    [curriculum, lastPlace],
+  );
 
   const playAudio = useCallback(
     (url: string, label: string) => {
       if (!url || !audioRef.current) return;
       const player = audioRef.current;
-      if (activeAudio?.url !== url) player.src = url;
+      if (activeAudio?.url !== url) {
+        player.src = url;
+        setAudioTime(0);
+        setAudioDuration(0);
+      }
       player.playbackRate = speed;
       setActiveAudio({ url, label });
       player.play().catch(() => setIsPlaying(false));
@@ -253,12 +297,23 @@ export function TaigiApp() {
     [activeAudio?.url, speed],
   );
 
+  const rememberPlace = useCallback((bookId: string, page: number) => {
+    const place = { bookId, page };
+    setLastPlace(place);
+    localStorage.setItem("opentaigi-last-place", JSON.stringify(place));
+  }, []);
+
   const goToPage = useCallback(
     (nextPage: number) => {
       if (!activeBook) return;
-      setPageNumber(Math.min(Math.max(nextPage, 1), activeBook.pageCount));
+      const safePage = Math.min(
+        Math.max(nextPage, 1),
+        activeBook.pageCount,
+      );
+      setPageNumber(safePage);
+      rememberPlace(activeBook.id, safePage);
     },
-    [activeBook],
+    [activeBook, rememberPlace],
   );
 
   useEffect(() => {
@@ -276,11 +331,27 @@ export function TaigiApp() {
   const openBook = (bookId: string, page = 1) => {
     setActiveBookId(bookId);
     setPageNumber(page);
+    setReaderZoom(1);
     setMode("reader");
+    rememberPlace(bookId, page);
     window.setTimeout(
       () => document.querySelector("#workbench")?.scrollIntoView(),
       0,
     );
+  };
+
+  const switchMode = (nextMode: Mode) => {
+    if (nextMode === "reader" && lastPlace) {
+      setActiveBookId(lastPlace.bookId);
+      setPageNumber(lastPlace.page);
+    }
+    setMode(nextMode);
+  };
+
+  const toggleHotspotHints = () => {
+    const next = !showHotspots;
+    setShowHotspots(next);
+    localStorage.setItem("opentaigi-show-hotspots", String(next));
   };
 
   const toggleStoredSet = (
@@ -368,9 +439,13 @@ export function TaigiApp() {
         </nav>
         <button
           className="mast-start"
-          onClick={() => openBook("pronunciation")}
+          onClick={() =>
+            lastPlace
+              ? openBook(lastPlace.bookId, lastPlace.page)
+              : openBook("pronunciation")
+          }
         >
-          開始點讀
+          {lastPlace ? "繼續讀" : "開始點讀"}
         </button>
       </header>
 
@@ -387,8 +462,17 @@ export function TaigiApp() {
             再把語詞、840 句生活台語整理成可搜尋、可複習的練習。
           </p>
           <div className="hero-actions">
-            <button onClick={() => openBook("pronunciation")}>
-              翻開第一冊 <span aria-hidden="true">↗</span>
+            <button
+              onClick={() =>
+                lastPlace
+                  ? openBook(lastPlace.bookId, lastPlace.page)
+                  : openBook("pronunciation")
+              }
+            >
+              {lastBook && lastPlace
+                ? `繼續 ${lastBook.series} · 第 ${lastPlace.page} 頁`
+                : "翻開第一冊"}{" "}
+              <span aria-hidden="true">↗</span>
             </button>
             <button
               className="text-button"
@@ -487,7 +571,7 @@ export function TaigiApp() {
               role="tab"
               aria-selected={mode === item.id}
               className={mode === item.id ? "active" : ""}
-              onClick={() => setMode(item.id)}
+              onClick={() => switchMode(item.id)}
             >
               <span>{item.index}</span>
               {item.label}
@@ -534,10 +618,7 @@ export function TaigiApp() {
                   <button
                     key={book.id}
                     className={activeBookId === book.id ? "active" : ""}
-                    onClick={() => {
-                      setActiveBookId(book.id);
-                      setPageNumber(1);
-                    }}
+                    onClick={() => openBook(book.id)}
                     style={{ "--book-accent": book.accent } as CSSProperties}
                   >
                     <span>{book.number}</span>
@@ -583,6 +664,21 @@ export function TaigiApp() {
                     </div>
                     <div className="reader-actions">
                       <button
+                        className={showHotspots ? "marked" : ""}
+                        aria-pressed={showHotspots}
+                        onClick={toggleHotspotHints}
+                      >
+                        {showHotspots ? "● 發音提示" : "○ 顯示發音點"}
+                      </button>
+                      <button
+                        aria-pressed={readerZoom > 1}
+                        onClick={() =>
+                          setReaderZoom((zoom) => (zoom > 1 ? 1 : 1.8))
+                        }
+                      >
+                        {readerZoom > 1 ? "－ 還原大小" : "＋ 放大閱讀"}
+                      </button>
+                      <button
                         className={bookmarks.has(pageKey) ? "marked" : ""}
                         onClick={() =>
                           toggleStoredSet(
@@ -606,41 +702,49 @@ export function TaigiApp() {
                   </header>
 
                   <div
-                    className="reader-page-canvas"
-                    style={{
-                      aspectRatio: `${activePage.width} / ${activePage.height}`,
-                    }}
+                    className={`reader-page-viewport ${
+                      readerZoom > 1 ? "zoomed" : ""
+                    }`}
                   >
-                    {/* The source spread is the primary teaching visual. */}
-                    {/* The pages are pre-optimized WebP and use dynamic source data. */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={activePage.image}
-                      alt={`${activeBook.title}第 ${activePage.number} 頁`}
-                    />
-                    {activePage.hotspots.map((hotspot, index) => (
-                      <button
-                        key={hotspot.id}
-                        className={`audio-hotspot ${hotspot.kind} ${
-                          activeAudio?.url === hotspot.audio ? "playing" : ""
-                        }`}
-                        style={{
-                          left: `${hotspot.x}%`,
-                          top: `${hotspot.y}%`,
-                          width: `${hotspot.width}%`,
-                          height: `${hotspot.height}%`,
-                          "--hotspot-delay": `${Math.min(index * 18, 360)}ms`,
-                        } as CSSProperties}
-                        aria-label={`播放：${hotspot.label}`}
-                        title={hotspot.label}
-                        disabled={!hotspot.available}
-                        onClick={() =>
-                          playAudio(hotspot.audio, hotspot.label)
-                        }
-                      >
-                        <span aria-hidden="true">▶</span>
-                      </button>
-                    ))}
+                    <div
+                      className="reader-page-canvas"
+                      style={{
+                        aspectRatio: `${activePage.width} / ${activePage.height}`,
+                        "--reader-scale": readerZoom,
+                      } as CSSProperties}
+                    >
+                      {/* The source spread is the primary teaching visual. */}
+                      {/* The pages are pre-optimized WebP and use dynamic source data. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={activePage.image}
+                        alt={`${activeBook.title}第 ${activePage.number} 頁`}
+                      />
+                      {showHotspots &&
+                        activePage.hotspots.map((hotspot, index) => (
+                          <button
+                            key={hotspot.id}
+                            className={`audio-hotspot ${hotspot.kind} ${
+                              activeAudio?.url === hotspot.audio ? "playing" : ""
+                            }`}
+                            style={{
+                              left: `${hotspot.x}%`,
+                              top: `${hotspot.y}%`,
+                              width: `${hotspot.width}%`,
+                              height: `${hotspot.height}%`,
+                              "--hotspot-delay": `${Math.min(index * 18, 360)}ms`,
+                            } as CSSProperties}
+                            aria-label={`播放：${hotspot.label}`}
+                            title={hotspot.label}
+                            disabled={!hotspot.available}
+                            onClick={() =>
+                              playAudio(hotspot.audio, hotspot.label)
+                            }
+                          >
+                            <span aria-hidden="true">▶</span>
+                          </button>
+                        ))}
+                    </div>
                   </div>
 
                   <div className="page-controls">
@@ -676,11 +780,28 @@ export function TaigiApp() {
                     </button>
                   </div>
 
+                  <label className="page-scrubber">
+                    <span>1</span>
+                    <input
+                      type="range"
+                      min="1"
+                      max={activeBook.pageCount}
+                      value={pageNumber}
+                      onChange={(event) =>
+                        goToPage(Number(event.target.value))
+                      }
+                      aria-label={`快速翻頁，目前第 ${pageNumber} 頁`}
+                    />
+                    <span>{activeBook.pageCount}</span>
+                  </label>
+
                   <div className="reader-note">
                     <p>
                       <span className="hotspot-key">▶</span>
-                      頁上的橘點都是原書發音位置，共 {activePage.hotspots.length} 處。
-                      電腦也可用左右方向鍵翻頁。
+                      {showHotspots
+                        ? `這頁有 ${activePage.hotspots.length} 個發音位置。`
+                        : "發音提示已收起，可隨時打開。"}{" "}
+                      電腦可用方向鍵；手機放大後可左右拖曳。
                     </p>
                     <button
                       className={completed.has(pageKey) ? "done" : ""}
@@ -795,6 +916,21 @@ export function TaigiApp() {
                   </article>
                 );
               })}
+              {filteredVocabulary.length === 0 && (
+                <div className="empty-state">
+                  <span aria-hidden="true">查</span>
+                  <strong>這擺無揣著語詞</strong>
+                  <p>試看覓較短的關鍵字，抑是清掉冊別篩選。</p>
+                  <button
+                    onClick={() => {
+                      setVocabSearch("");
+                      setVocabVolume("全部");
+                    }}
+                  >
+                    清除篩選
+                  </button>
+                </div>
+              )}
             </div>
             {visibleVocabulary < filteredVocabulary.length && (
               <button
@@ -905,6 +1041,22 @@ export function TaigiApp() {
                   </button>
                 </article>
               ))}
+              {filteredSentences.length === 0 && (
+                <div className="empty-state">
+                  <span aria-hidden="true">句</span>
+                  <strong>這擺無揣著語句</strong>
+                  <p>換一個詞，抑是改做「全部」冊別與主題。</p>
+                  <button
+                    onClick={() => {
+                      setSentenceSearch("");
+                      setSentenceVolume("全部");
+                      setSentenceChapter("全部");
+                    }}
+                  >
+                    清除篩選
+                  </button>
+                </div>
+              )}
             </div>
             {visibleSentences < filteredSentences.length && (
               <button
@@ -973,11 +1125,43 @@ export function TaigiApp() {
             <option value={1.25}>1.25×</option>
           </select>
         </label>
+        <button
+          className="dock-close"
+          onClick={() => {
+            audioRef.current?.pause();
+            setActiveAudio(null);
+            setAudioTime(0);
+          }}
+          aria-label="關閉播放器"
+        >
+          ×
+        </button>
+        <label className="dock-progress">
+          <span className="sr-only">音檔播放進度</span>
+          <input
+            type="range"
+            min="0"
+            max={audioDuration || 0}
+            value={Math.min(audioTime, audioDuration || 0)}
+            step="0.01"
+            onChange={(event) => {
+              const nextTime = Number(event.target.value);
+              if (audioRef.current) audioRef.current.currentTime = nextTime;
+              setAudioTime(nextTime);
+            }}
+          />
+        </label>
         <audio
           ref={audioRef}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
+          onLoadedMetadata={(event) =>
+            setAudioDuration(event.currentTarget.duration || 0)
+          }
+          onTimeUpdate={(event) =>
+            setAudioTime(event.currentTarget.currentTime)
+          }
         />
       </div>
     </main>
