@@ -61,6 +61,11 @@ test("includes responsive, accessible interaction styles", async () => {
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(css, /\.reader-page-canvas/);
   assert.match(css, /\.audio-hotspot/);
+  assert.match(
+    css,
+    /\.brand small\s*\{[^}]*font-family: var\(--latin-serif\)[^}]*letter-spacing: normal/s,
+  );
+  assert.match(css, /--latin-serif: "Times New Roman"/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /prefers-reduced-motion/);
 });

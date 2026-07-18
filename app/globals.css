@@ -11,6 +11,7 @@
   --gold: #efb841;
   --rule: rgba(18, 63, 49, 0.22);
   --serif: "Iowan Old Style", "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --latin-serif: "Times New Roman", "Noto Serif", "Noto Serif TC", serif;
   --sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
 }
 
@@ -126,10 +127,10 @@ img {
 
 .brand small {
   color: var(--ink-muted);
-  font-family: Georgia, serif;
+  font-family: var(--latin-serif);
   font-size: 10px;
   font-style: italic;
-  letter-spacing: 0.08em;
+  letter-spacing: normal;
 }
 
 .mast-nav {
@@ -348,7 +349,7 @@ img {
 
 .hero-poster i {
   margin-top: 4px;
-  font-family: Georgia, serif;
+  font-family: var(--latin-serif);
   font-size: 27px;
 }
 
@@ -1105,7 +1106,7 @@ img {
 
 .word-main i {
   color: var(--ink-muted);
-  font-family: Georgia, serif;
+  font-family: var(--latin-serif);
   font-size: 17px;
 }
 
@@ -1216,7 +1217,7 @@ img {
   min-height: 22px;
   margin-top: 4px;
   color: var(--ink-muted);
-  font-family: Georgia, serif;
+  font-family: var(--latin-serif);
 }
 
 .practice-slip div {
@@ -1272,7 +1273,7 @@ img {
 
 .sentence-row i {
   color: var(--ink);
-  font-family: Georgia, serif;
+  font-family: var(--latin-serif);
   font-size: 15px;
 }
 
