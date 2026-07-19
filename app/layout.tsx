@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://eric-lam.com/OpenTaigi/"),
+  metadataBase: new URL("https://openformosa.github.io/OpenTaigi/"),
   title: "咱來學台語｜八冊完整互動教材",
   description:
     "八冊、217 頁 PDF 全文轉成可搜尋、可重排的 HTML，並保留 4,349 段真人發音。",

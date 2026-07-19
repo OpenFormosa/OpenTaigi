@@ -4,7 +4,7 @@
 [Taiwanese-Corpus/Lan-Lai-Oh-Taigi](https://github.com/Taiwanese-Corpus/Lan-Lai-Oh-Taigi)
 公開資料整理成適合手機與電腦的互動式教學網站。
 
-**網站：<https://eric-lam.com/OpenTaigi/>**
+**網站：<https://openformosa.github.io/OpenTaigi/>**
 
 ## 學習功能
 
