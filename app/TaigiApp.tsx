@@ -9,11 +9,29 @@ import {
   useState,
 } from "react";
 
-type Mode = "reader" | "vocabulary" | "sentences";
+type Mode = "reader" | "vocabulary" | "sentences" | "games";
 type ReaderView = "reading" | "layout";
 type Volume = "上冊" | "下冊";
 type LearnerLevel = "starter" | "everyday" | "advanced";
 type HintMode = "full" | "romanization" | "challenge";
+type GameKind = "listening" | "word";
+
+type GameRound = {
+  id: string;
+  kind: GameKind;
+  prompt: string;
+  romanization: string;
+  answer: string;
+  audio: string;
+  options: Array<{ id: string; label: string }>;
+};
+
+type GameStats = {
+  score: number;
+  streak: number;
+  bestStreak: number;
+  answered: number;
+};
 
 type Hotspot = {
   id: string;
@@ -177,7 +195,7 @@ const learnerLevels: Record<
       label: string;
       title: string;
       detail: string;
-      action: "book" | "vocabulary" | "sentences";
+      action: "book" | Mode;
       bookId?: string;
       page?: number;
     }>;
@@ -210,10 +228,10 @@ const learnerLevels: Record<
         action: "vocabulary",
       },
       {
-        label: "開口",
-        title: "生活短句",
-        detail: "聽一句、跟講一句，再核對意思。",
-        action: "sentences",
+        label: "闖關",
+        title: "聽力初挑戰",
+        detail: "聽一句、揀意思，用遊戲建立第一份信心。",
+        action: "games",
       },
     ],
   },
@@ -242,10 +260,10 @@ const learnerLevels: Record<
         action: "vocabulary",
       },
       {
-        label: "複述",
-        title: "隨機練習",
-        detail: "換一句、跟講、再揭開答案核對。",
-        action: "sentences",
+        label: "闖關",
+        title: "情境聽力賽",
+        detail: "不看華語先聽懂，累積答對連勝。",
+        action: "games",
       },
     ],
   },
@@ -280,8 +298,8 @@ const learnerLevels: Record<
       {
         label: "自測",
         title: "無提示聽句",
-        detail: "先不看台羅與華語，測試理解程度。",
-        action: "sentences",
+        detail: "只聽真人發音作答，挑戰最高連勝。",
+        action: "games",
       },
     ],
   },
@@ -385,6 +403,29 @@ function loadLearnerLevel(): LearnerLevel {
   return "starter";
 }
 
+function loadGameStats(): GameStats {
+  try {
+    const value = JSON.parse(
+      localStorage.getItem("opentaigi-game-stats") ?? "null",
+    );
+    if (
+      value &&
+      [value.score, value.streak, value.bestStreak, value.answered].every(
+        Number.isFinite,
+      )
+    ) {
+      return value;
+    }
+  } catch {
+    // Starting from zero is safer than blocking play on an old preference.
+  }
+  return { score: 0, streak: 0, bestStreak: 0, answered: 0 };
+}
+
+function shuffled<T>(values: T[]) {
+  return [...values].sort(() => Math.random() - 0.5);
+}
+
 function escapeExpression(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -445,9 +486,8 @@ export function TaigiApp() {
   const [sentences, setSentences] = useState<Sentence[]>([]);
   const [mode, setMode] = useState<Mode>("reader");
   const [readerView, setReaderView] = useState<ReaderView>("reading");
-  const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>(() =>
-    typeof window === "undefined" ? "starter" : loadLearnerLevel(),
-  );
+  const [learnerLevel, setLearnerLevel] =
+    useState<LearnerLevel>("starter");
   const [hintMode, setHintMode] = useState<HintMode>("full");
   const [activeBookId, setActiveBookId] = useState("pronunciation");
   const [pageNumber, setPageNumber] = useState(2);
@@ -485,6 +525,15 @@ export function TaigiApp() {
     null,
   );
   const [showPracticeAnswer, setShowPracticeAnswer] = useState(false);
+  const [gameKind, setGameKind] = useState<GameKind>("listening");
+  const [gameRound, setGameRound] = useState<GameRound | null>(null);
+  const [gameChoice, setGameChoice] = useState<string | null>(null);
+  const [gameStats, setGameStats] = useState<GameStats>({
+    score: 0,
+    streak: 0,
+    bestStreak: 0,
+    answered: 0,
+  });
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const audioRef = useRef<HTMLAudioElement>(null);
   const learnerProfile = learnerLevels[learnerLevel];
@@ -543,6 +592,7 @@ export function TaigiApp() {
       setHintMode(profile.hintMode);
       setSpeed(profile.speed);
       setFontScale(profile.fontScale);
+      setGameStats(loadGameStats());
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
@@ -639,6 +689,86 @@ export function TaigiApp() {
     });
   }, [sentenceChapter, sentenceSearch, sentenceVolume, sentences]);
 
+  const makeGameRound = useCallback(
+    (kind: GameKind, avoidId?: string): GameRound | null => {
+      if (kind === "listening") {
+        const pool = sentences.filter(
+          (sentence) => sentence.huagi && sentence.id !== avoidId,
+        );
+        const question = shuffled(pool)[0];
+        if (!question) return null;
+        const distractors = shuffled(
+          sentences.filter(
+            (sentence) =>
+              sentence.id !== question.id &&
+              sentence.huagi &&
+              sentence.huagi !== question.huagi,
+          ),
+        )
+          .filter(
+            (sentence, index, values) =>
+              values.findIndex((item) => item.huagi === sentence.huagi) === index,
+          )
+          .slice(0, 3);
+        const options = shuffled([question, ...distractors]).map((sentence) => ({
+          id: sentence.huagi,
+          label: sentence.huagi,
+        }));
+        return {
+          id: question.id,
+          kind,
+          prompt: question.hanji,
+          romanization: question.lomaji,
+          answer: question.huagi,
+          audio: sentenceAudio(question),
+          options,
+        };
+      }
+
+      const pool = vocabulary.filter(
+        (entry) => entry.meaning && entry.id !== avoidId,
+      );
+      const question = shuffled(pool)[0];
+      if (!question) return null;
+      const distractors = shuffled(
+        vocabulary.filter(
+          (entry) =>
+            entry.id !== question.id &&
+            entry.meaning &&
+            entry.meaning !== question.meaning,
+        ),
+      )
+        .filter(
+          (entry, index, values) =>
+            values.findIndex((item) => item.meaning === entry.meaning) === index,
+        )
+        .slice(0, 3);
+      const options = shuffled([question, ...distractors]).map((entry) => ({
+        id: entry.meaning,
+        label: entry.meaning,
+      }));
+      return {
+        id: question.id,
+        kind,
+        prompt: question.headword,
+        romanization: question.romanization,
+        answer: question.meaning,
+        audio: question.audioA,
+        options,
+      };
+    },
+    [sentences, vocabulary],
+  );
+
+  const startGame = useCallback(
+    (kind: GameKind, avoidId?: string) => {
+      setGameKind(kind);
+      setGameChoice(null);
+      setGameRound(makeGameRound(kind, avoidId));
+    },
+    [makeGameRound],
+  );
+
   const playAudio = useCallback(
     (url: string, label: string) => {
       if (!url || !audioRef.current) return;
@@ -658,6 +788,29 @@ export function TaigiApp() {
     },
     [activeAudio?.url, speed],
   );
+
+  const answerGame = (choice: string) => {
+    if (!gameRound || gameChoice) return;
+    const correct = choice === gameRound.answer;
+    setGameChoice(choice);
+    setGameStats((current) => {
+      const streak = correct ? current.streak + 1 : 0;
+      const next = {
+        score: current.score + (correct ? 10 + current.streak * 2 : 0),
+        streak,
+        bestStreak: Math.max(current.bestStreak, streak),
+        answered: current.answered + 1,
+      };
+      localStorage.setItem("opentaigi-game-stats", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const resetGameStats = () => {
+    const next = { score: 0, streak: 0, bestStreak: 0, answered: 0 };
+    setGameStats(next);
+    localStorage.setItem("opentaigi-game-stats", JSON.stringify(next));
+  };
 
   const rememberPlace = useCallback((bookId: string, page: number) => {
     const place = { bookId, page };
@@ -703,6 +856,9 @@ export function TaigiApp() {
 
   const switchMode = (nextMode: Mode) => {
     setMode(nextMode);
+    if (nextMode === "games" && (!gameRound || gameRound.kind !== gameKind)) {
+      startGame(gameKind);
+    }
     window.setTimeout(
       () => document.querySelector("#learn")?.scrollIntoView(),
       0,
@@ -783,6 +939,7 @@ export function TaigiApp() {
             <a href="#books">全部教材</a>
             <button onClick={() => switchMode("vocabulary")}>語詞</button>
             <button onClick={() => switchMode("sentences")}>語句</button>
+            <button onClick={() => switchMode("games")}>遊戲</button>
           </nav>
           <div className="nav-actions">
             <button
@@ -802,15 +959,15 @@ export function TaigiApp() {
       <main>
         <section className="hero section-pad">
           <div className="hero-copy">
-            <p className="eyebrow">揀適合你的學習方式</p>
+            <p className="eyebrow">真實語料 / 分級遊戲 / 完整教材</p>
             <h1>
-              <span>程度無仝，</span>
-              <span>學台語的路</span>
-              <span>嘛袂仝。</span>
+              <span>聽一句、揣答案，</span>
+              <span>一關一關</span>
+              <span>學台語。</span>
             </h1>
             <p className="lede">
               不論是第一次學、已經會講一點，或想讀完整文章，
-              系統都會調整提示、播放速度、字級與推薦教材；八冊內容仍然完整保留。
+              都能用真人發音玩聽力、配詞義、累積連勝；提示與速度會跟著程度調整。
             </p>
           </div>
 
@@ -838,8 +995,8 @@ export function TaigiApp() {
                 <dd>{learnerProfile.speed}×</dd>
               </div>
               <div>
-                <dt>完整教材</dt>
-                <dd>217 頁</dd>
+                <dt>互動遊戲</dt>
+                <dd>2 款</dd>
               </div>
             </dl>
             <div className="release-status">
@@ -973,6 +1130,7 @@ export function TaigiApp() {
               ["reader", "01", "全文閱讀"],
               ["vocabulary", "02", "語詞資料庫"],
               ["sentences", "03", "生活語句"],
+              ["games", "04", "遊戲練功"],
             ].map(([id, index, label]) => (
               <button
                 key={id}
@@ -1733,6 +1891,214 @@ export function TaigiApp() {
                   閣看 80 句
                 </button>
               )}
+            </div>
+          )}
+
+          {mode === "games" && (
+            <div className="database-mode game-mode section-pad">
+              <header className="database-head">
+                <div>
+                  <p className="eyebrow">PLAYGROUND / REAL VOICES</p>
+                  <h2>台語練功房</h2>
+                </div>
+                <p>
+                  每一題都直接使用教材裡的真人錄音與正式語料。
+                  程度愈高，畫面提供的文字提示愈少。
+                </p>
+              </header>
+
+              <div
+                className="game-console"
+                style={
+                  { "--level-color": learnerProfile.color } as CSSProperties
+                }
+              >
+                <aside className="game-menu">
+                  <header>
+                    <span>揀一款</span>
+                    <strong>GAME SELECT</strong>
+                  </header>
+                  <button
+                    className={gameKind === "listening" ? "active" : ""}
+                    onClick={() => startGame("listening", gameRound?.id)}
+                  >
+                    <span>01</span>
+                    <strong>聽音揣意思</strong>
+                    <small>真人語句 → 華語</small>
+                  </button>
+                  <button
+                    className={gameKind === "word" ? "active" : ""}
+                    onClick={() => startGame("word", gameRound?.id)}
+                  >
+                    <span>02</span>
+                    <strong>語詞對對碰</strong>
+                    <small>台語詞 → 華語</small>
+                  </button>
+                  <footer>
+                    <span>目前難度</span>
+                    <strong>{learnerProfile.name}</strong>
+                    <small>{learnerProfile.pace}</small>
+                  </footer>
+                </aside>
+
+                <article
+                  className={`quiz-machine ${
+                    gameChoice
+                      ? gameChoice === gameRound?.answer
+                        ? "is-correct"
+                        : "is-wrong"
+                      : ""
+                  }`}
+                >
+                  <header className="game-scorebar">
+                    <div>
+                      <span>SCORE</span>
+                      <strong>{String(gameStats.score).padStart(4, "0")}</strong>
+                    </div>
+                    <div>
+                      <span>連勝</span>
+                      <strong>{gameStats.streak}</strong>
+                    </div>
+                    <div>
+                      <span>最高</span>
+                      <strong>{gameStats.bestStreak}</strong>
+                    </div>
+                    <button onClick={resetGameStats}>歸零</button>
+                  </header>
+
+                  {gameRound ? (
+                    <>
+                      <div className="quiz-prompt">
+                        <span>
+                          {gameKind === "listening"
+                            ? "聽真人發音，揣出正確意思"
+                            : "看台語詞，揣出正確意思"}
+                        </span>
+                        <button
+                          className="game-listen"
+                          onClick={() =>
+                            playAudio(gameRound.audio, gameRound.prompt)
+                          }
+                          disabled={!gameRound.audio}
+                          aria-label={`播放題目：${gameRound.prompt}`}
+                        >
+                          <b>{isPlaying ? "Ⅱ" : "▶"}</b>
+                          <small>聽題目</small>
+                        </button>
+                        {gameKind === "word" ||
+                        learnerLevel === "starter" ||
+                        gameChoice ? (
+                          <h3>{gameRound.prompt}</h3>
+                        ) : (
+                          <h3 className="hidden-prompt">先聽，莫看文字</h3>
+                        )}
+                        {(learnerLevel === "starter" || gameChoice) && (
+                          <i>{gameRound.romanization}</i>
+                        )}
+                        <div className="sound-bars" aria-hidden="true">
+                          {Array.from({ length: 11 }, (_, index) => (
+                            <span key={index} />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="quiz-options">
+                        {gameRound.options.map((option, index) => {
+                          const correct =
+                            gameChoice && option.id === gameRound.answer;
+                          const wrong =
+                            gameChoice === option.id &&
+                            option.id !== gameRound.answer;
+                          return (
+                            <button
+                              key={option.id}
+                              className={`${correct ? "correct" : ""} ${
+                                wrong ? "wrong" : ""
+                              }`}
+                              onClick={() => answerGame(option.id)}
+                              disabled={Boolean(gameChoice)}
+                            >
+                              <span>
+                                {String.fromCharCode(65 + index)}
+                              </span>
+                              <strong>{option.label}</strong>
+                              <b aria-hidden="true">
+                                {correct ? "✓" : wrong ? "×" : "→"}
+                              </b>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <footer className="game-feedback" aria-live="polite">
+                        {!gameChoice ? (
+                          <>
+                            <span>準備好了無？</span>
+                            <strong>
+                              {gameKind === "listening"
+                                ? "可以重播，聽清楚才作答。"
+                                : "先讀台文，再想華語意思。"}
+                            </strong>
+                          </>
+                        ) : gameChoice === gameRound.answer ? (
+                          <>
+                            <span>答著矣！ +{10 + (gameStats.streak - 1) * 2}</span>
+                            <strong>
+                              {gameRound.prompt} · {gameRound.answer}
+                            </strong>
+                          </>
+                        ) : (
+                          <>
+                            <span>差一屑仔</span>
+                            <strong>
+                              正確答案：{gameRound.answer}
+                            </strong>
+                          </>
+                        )}
+                        {gameChoice && (
+                          <button
+                            onClick={() =>
+                              startGame(gameKind, gameRound.id)
+                            }
+                          >
+                            下一題 →
+                          </button>
+                        )}
+                      </footer>
+                    </>
+                  ) : (
+                    <div className="game-loading">
+                      <span>LOADING</span>
+                      <strong>咧準備教材題目⋯</strong>
+                      <button onClick={() => startGame(gameKind)}>
+                        開始出題 →
+                      </button>
+                    </div>
+                  )}
+                </article>
+
+                <aside className="game-ledger">
+                  <header>PLAY RECORD</header>
+                  <dl>
+                    <div>
+                      <dt>答題</dt>
+                      <dd>{gameStats.answered}</dd>
+                    </div>
+                    <div>
+                      <dt>總分</dt>
+                      <dd>{gameStats.score}</dd>
+                    </div>
+                    <div>
+                      <dt>最高連勝</dt>
+                      <dd>{gameStats.bestStreak}</dd>
+                    </div>
+                  </dl>
+                  <p>
+                    初學會顯示台文與台羅；生活程度先收起華語；
+                    進階聽力題只播放聲音。
+                  </p>
+                </aside>
+              </div>
             </div>
           )}
         </section>

@@ -5,18 +5,27 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://openformosa.github.io/OpenTaigi/"),
   title: "咱來學台語｜依程度學習的互動教材",
   description:
-    "初學、生活應用、進階讀寫三條學習路線；八冊、217 頁 HTML 教材與 4,349 段真人發音。",
+    "用真人發音玩聽力闖關、語詞配對與連勝挑戰；並保留初學到進階的八冊、217 頁 HTML 教材。",
   openGraph: {
     title: "咱來學台語｜依程度學習的互動教材",
     description:
-      "依程度調整提示、速度與推薦內容，從拼音、語詞一路學到完整文章。",
+      "聽一句、揣答案，用真人發音遊戲一路學到完整文章。",
     type: "website",
     locale: "zh_TW",
+    images: [
+      {
+        url: "og.png",
+        width: 1731,
+        height: 909,
+        alt: "咱來學台語：聽、揣、講的互動式台語遊戲教材。",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "咱來學台語｜依程度學習的互動教材",
-    description: "初學、生活應用、進階讀寫三條學習路線。",
+    description: "真人發音闖關、語詞配對與分級互動教材。",
+    images: ["og.png"],
   },
 };
 

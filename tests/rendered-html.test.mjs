@@ -33,7 +33,7 @@ test("server-renders the complete Taigi HTML learning experience", async () => {
     html,
     /<title>咱來學台語｜依程度學習的互動教材<\/title>/i,
   );
-  assert.match(html, /程度無仝/);
+  assert.match(html, /聽一句、揣答案/);
   assert.match(html, /初學起步/);
   assert.match(html, /生活應用/);
   assert.match(html, /進階讀寫/);
@@ -41,6 +41,7 @@ test("server-renders the complete Taigi HTML learning experience", async () => {
   assert.match(html, /全文閱讀/);
   assert.match(html, /語詞資料庫/);
   assert.match(html, /生活語句/);
+  assert.match(html, /遊戲練功/);
   assert.doesNotMatch(html, /Your site is taking shape|codex-preview/);
 });
 
@@ -135,6 +136,10 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(component, /opentaigi-learner-level/);
   assert.match(component, /learnerLevels/);
   assert.match(component, /hintMode/);
+  assert.match(component, /opentaigi-game-stats/);
+  assert.match(component, /聽音揣意思/);
+  assert.match(component, /語詞對對碰/);
+  assert.match(component, /gameScorebar|game-scorebar/);
   assert.match(component, /初學起步/);
   assert.match(component, /生活應用/);
   assert.match(component, /進階讀寫/);
@@ -146,4 +151,7 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(css, /\.level-picker/);
   assert.match(css, /\.personal-route/);
   assert.match(css, /\.hint-controls/);
+  assert.match(css, /\.game-console/);
+  assert.match(css, /\.quiz-options/);
+  assert.match(css, /@keyframes sound-pulse/);
 });
