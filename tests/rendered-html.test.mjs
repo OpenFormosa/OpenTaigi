@@ -64,7 +64,8 @@ test("includes OpenFormosa styling and responsive interaction", async () => {
   );
 
   assert.match(css, /@media \(max-width: 760px\)/);
-  assert.match(css, /\.reading-columns/);
+  assert.match(css, /\.reading-flow/);
+  assert.match(css, /\.mode-tabs\s*\{[^}]*repeat\(4,\s*1fr\)/s);
   assert.match(css, /\.layout-sheet/);
   assert.match(css, /\.layout-audio/);
   assert.match(css, /--paper:\s*#f2eadc/);
@@ -128,6 +129,10 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(component, /opentaigi-last-place/);
   assert.match(component, /readerView/);
   assert.match(component, /reading-sheet/);
+  assert.match(component, /lesson-word-list/);
+  assert.match(component, /lesson-sentence-list/);
+  assert.match(component, /lesson-audio-strip/);
+  assert.match(component, /教學模式/);
   assert.match(component, /layout-sheet/);
   assert.match(component, /readerQuery/);
   assert.match(component, /showAudio/);

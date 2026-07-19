@@ -456,8 +456,13 @@ function RenderBlock({
   block: HtmlBlock;
   query: string;
 }) {
+  const normalized = block.text.trim();
+  if (!normalized || /^[—–─-]+$/.test(normalized)) return null;
   const content = <Highlight text={block.text} query={query} />;
   if (block.role === "title") return <h3>{content}</h3>;
+  if (block.role === "heading" && normalized.length <= 3) {
+    return <span className="inline-term">{content}</span>;
+  }
   if (block.role === "heading") return <h4>{content}</h4>;
   if (block.role === "note") return <aside>{content}</aside>;
   return <p>{content}</p>;
@@ -613,6 +618,14 @@ export function TaigiApp() {
   const activePage = activeBook?.pages[pageNumber - 1] ?? null;
   const activeHtmlPage = activeHtmlBook?.pages[pageNumber - 1] ?? null;
   const pageKey = `${activeBookId}-${pageNumber}`;
+  const pageVocabulary = useMemo(
+    () =>
+      vocabulary.filter(
+        (entry) =>
+          entry.bookId === activeBookId && entry.page === pageNumber,
+      ),
+    [activeBookId, pageNumber, vocabulary],
+  );
 
   const sentencePageGroups = useMemo(() => {
     if (!activeBookId.startsWith("sentences-")) return [];
@@ -843,11 +856,17 @@ export function TaigiApp() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [goToPage, mode, pageNumber]);
 
-  const openBook = (bookId: string, page = 2) => {
+  const openBook = (bookId: string, page?: number) => {
+    const lessonPage =
+      page ??
+      (bookId.startsWith("vocabulary-") ||
+      bookId.startsWith("sentences-")
+        ? 3
+        : 2);
     setActiveBookId(bookId);
-    setPageNumber(page);
+    setPageNumber(lessonPage);
     setMode("reader");
-    rememberPlace(bookId, page);
+    rememberPlace(bookId, lessonPage);
     window.setTimeout(
       () => document.querySelector("#learn")?.scrollIntoView(),
       0,
@@ -1080,7 +1099,7 @@ export function TaigiApp() {
                 ? curriculum?.books.map((book) => (
                     <button
                       key={book.id}
-                      onClick={() => openBook(book.id, 2)}
+                      onClick={() => openBook(book.id)}
                       style={{ "--book-color": book.accent } as CSSProperties}
                     >
                       <span className="book-number">{book.number}</span>
@@ -1157,7 +1176,7 @@ export function TaigiApp() {
                     <button
                       key={book.id}
                       className={activeBookId === book.id ? "active" : ""}
-                      onClick={() => openBook(book.id, 2)}
+                      onClick={() => openBook(book.id)}
                       style={{ "--book-color": book.accent } as CSSProperties}
                     >
                       <span>{book.number}</span>
@@ -1195,9 +1214,9 @@ export function TaigiApp() {
                         <h2>{activeBook.title}</h2>
                       </div>
                       <div className="reader-status">
-                        <span>可搜尋</span>
-                        <span>可選取</span>
-                        <span>可重排</span>
+                        <span>先聽</span>
+                        <span>跟讀</span>
+                        <span>練習</span>
                       </div>
                     </header>
 
@@ -1207,7 +1226,7 @@ export function TaigiApp() {
                           className={readerView === "reading" ? "active" : ""}
                           onClick={() => setReaderView("reading")}
                         >
-                          閱讀模式
+                          教學模式
                         </button>
                         <button
                           className={readerView === "layout" ? "active" : ""}
@@ -1280,50 +1299,220 @@ export function TaigiApp() {
                             第 {pageNumber} / {activeBook.pageCount} 頁
                           </strong>
                         </header>
-                        {activeHtmlPage.text ? (
-                          <div className="reading-columns">
+                        {pageVocabulary.length > 0 ? (
+                          <div className="lesson-page vocabulary-lesson">
+                            <header className="lesson-intro">
+                              <div>
+                                <span>本頁學習 / PAGE {pageNumber}</span>
+                                <h3>{pageVocabulary.length} 个生活語詞</h3>
+                                <p>
+                                  先聽詞頭，閣看台羅佮華語，最後聽完整例詞。
+                                </p>
+                              </div>
+                              <ol aria-label="建議學習順序">
+                                <li><b>1</b> 聽詞頭</li>
+                                <li><b>2</b> 看台羅</li>
+                                <li><b>3</b> 跟講例詞</li>
+                              </ol>
+                            </header>
+                            <div className="lesson-word-list">
+                              {pageVocabulary.map((entry) => {
+                                const manuallyRevealed =
+                                  revealedWords.has(entry.id);
+                                const showRomanization =
+                                  hintMode !== "challenge" || manuallyRevealed;
+                                const showMeaning =
+                                  hintMode === "full" || manuallyRevealed;
+                                return (
+                                  <article key={entry.id}>
+                                    <span className="lesson-word-number">
+                                      {entry.number}
+                                    </span>
+                                    <button
+                                      className="lesson-word-play"
+                                      onClick={() =>
+                                        playAudio(entry.audioA, entry.headword)
+                                      }
+                                      aria-label={`播放${entry.headword}`}
+                                    >
+                                      ▶
+                                    </button>
+                                    <div className="lesson-word-main">
+                                      <strong>{entry.headword}</strong>
+                                      <i>
+                                        {showRomanization
+                                          ? entry.romanization || "—"
+                                          : "台羅先收起來"}
+                                      </i>
+                                    </div>
+                                    <button
+                                      className={`lesson-word-meaning ${
+                                        showMeaning ? "revealed" : ""
+                                      }`}
+                                      onClick={() => {
+                                        const next = new Set(revealedWords);
+                                        if (manuallyRevealed) {
+                                          next.delete(entry.id);
+                                        } else {
+                                          next.add(entry.id);
+                                        }
+                                        setRevealedWords(next);
+                                      }}
+                                    >
+                                      <span>
+                                        {showMeaning
+                                          ? entry.meaning
+                                          : "想看覓，閣揭答案"}
+                                      </span>
+                                      <small>
+                                        {showMeaning && entry.examples
+                                          ? entry.examples
+                                          : "按一下顯示華語佮例詞"}
+                                      </small>
+                                    </button>
+                                    <button
+                                      className="lesson-example-play"
+                                      onClick={() =>
+                                        playAudio(
+                                          entry.audioB,
+                                          `${entry.headword}的例詞`,
+                                        )
+                                      }
+                                      disabled={!entry.audioB}
+                                    >
+                                      B · 聽例詞
+                                    </button>
+                                  </article>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : sentencePageGroups.some(
+                            (group) => group.sentences.length > 0,
+                          ) ? (
+                          <div className="lesson-page sentence-lesson">
+                            <header className="lesson-intro">
+                              <div>
+                                <span>生活情境 / PAGE {pageNumber}</span>
+                                <h3>聽一句，跟講一句</h3>
+                                <p>
+                                  先按播放聽完整語氣，跟講了後才揭開提示。
+                                </p>
+                              </div>
+                              <ol aria-label="建議學習順序">
+                                <li><b>1</b> 聽語氣</li>
+                                <li><b>2</b> 跟講</li>
+                                <li><b>3</b> 揭答案</li>
+                              </ol>
+                            </header>
+                            <div className="lesson-sentence-list">
+                              {sentencePageGroups.flatMap((group) =>
+                                group.sentences.map((sentence) => {
+                                  const manuallyRevealed =
+                                    revealedSentences.has(sentence.id);
+                                  const showRomanization =
+                                    hintMode !== "challenge" ||
+                                    manuallyRevealed;
+                                  const showMeaning =
+                                    hintMode === "full" || manuallyRevealed;
+                                  return (
+                                    <article key={sentence.id}>
+                                      <span>
+                                        {String(sentence.order).padStart(2, "0")}
+                                      </span>
+                                      <button
+                                        className="lesson-sentence-play"
+                                        onClick={() =>
+                                          playAudio(
+                                            sentenceAudio(sentence),
+                                            sentence.hanji,
+                                          )
+                                        }
+                                        aria-label={`播放${sentence.hanji}`}
+                                      >
+                                        ▶
+                                      </button>
+                                      <div>
+                                        <strong>{sentence.hanji}</strong>
+                                        {showRomanization && (
+                                          <i>{sentence.lomaji}</i>
+                                        )}
+                                      </div>
+                                      <button
+                                        className={`lesson-sentence-hint ${
+                                          showMeaning ? "revealed" : ""
+                                        }`}
+                                        onClick={() => {
+                                          const next =
+                                            new Set(revealedSentences);
+                                          if (manuallyRevealed) {
+                                            next.delete(sentence.id);
+                                          } else {
+                                            next.add(sentence.id);
+                                          }
+                                          setRevealedSentences(next);
+                                        }}
+                                      >
+                                        {showMeaning
+                                          ? sentence.huagi
+                                          : "揭開華語提示"}
+                                      </button>
+                                    </article>
+                                  );
+                                }),
+                              )}
+                            </div>
+                          </div>
+                        ) : activeHtmlPage.text ? (
+                          <div className="reading-flow">
+                            {activePage.hotspots.length > 0 && (
+                              <div className="lesson-audio-strip">
+                                <header>
+                                  <span>先聽這一頁</span>
+                                  <small>
+                                    {activePage.hotspots.length} 段真人發音
+                                  </small>
+                                </header>
+                                <div>
+                                  {activePage.hotspots
+                                    .slice(0, 8)
+                                    .map((hotspot, index) => (
+                                      <button
+                                        key={hotspot.id}
+                                        onClick={() =>
+                                          playAudio(
+                                            hotspot.audio,
+                                            closestLine(
+                                              activeHtmlPage,
+                                              hotspot,
+                                            ),
+                                          )
+                                        }
+                                        disabled={!hotspot.available}
+                                      >
+                                        <b>▶</b>
+                                        <span>
+                                          {closestLine(
+                                            activeHtmlPage,
+                                            hotspot,
+                                          )}
+                                        </span>
+                                        <small>
+                                          {String(index + 1).padStart(2, "0")}
+                                        </small>
+                                      </button>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
                             {activeHtmlPage.columns.map((column) => (
                               <section key={column.side}>
-                                <small>
-                                  {column.side === "left" ? "LEFT PAGE" : "RIGHT PAGE"}
-                                </small>
                                 {column.blocks.map((block, index) => (
                                   <RenderBlock
                                     block={block}
                                     query={readerQuery}
                                     key={`${column.side}-${block.y}-${index}`}
                                   />
-                                ))}
-                              </section>
-                            ))}
-                          </div>
-                        ) : sentencePageGroups.some(
-                            (group) => group.sentences.length > 0,
-                          ) ? (
-                          <div className="reading-columns sentence-page-fallback">
-                            {sentencePageGroups.map((group) => (
-                              <section key={group.logicalPage}>
-                                <small>TEXTBOOK PAGE {group.logicalPage}</small>
-                                {group.sentences.map((sentence) => (
-                                  <article key={sentence.id}>
-                                    <span>{String(sentence.order).padStart(2, "0")}</span>
-                                    <div>
-                                      <strong>{sentence.hanji}</strong>
-                                      <i>{sentence.lomaji}</i>
-                                      <p>{sentence.huagi}</p>
-                                    </div>
-                                    <button
-                                      onClick={() =>
-                                        playAudio(
-                                          sentenceAudio(sentence),
-                                          sentence.hanji,
-                                        )
-                                      }
-                                      aria-label={`播放${sentence.hanji}`}
-                                    >
-                                      ▶
-                                    </button>
-                                  </article>
                                 ))}
                               </section>
                             ))}
