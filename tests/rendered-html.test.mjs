@@ -106,6 +106,7 @@ test("ships every PDF page as HTML text plus its audio map", async () => {
   assert.equal(htmlCurriculum.stats.pages, 217);
   assert.ok(htmlCurriculum.stats.lines > 12_000);
   assert.ok(htmlCurriculum.stats.characters > 180_000);
+  assert.equal(htmlCurriculum.stats.vocabularyEntries, 852);
   assert.equal(
     htmlCurriculum.books.flatMap((book) => book.pages).length,
     217,

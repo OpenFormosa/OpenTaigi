@@ -105,6 +105,7 @@ type HtmlCurriculum = {
     lines: number;
     characters: number;
     vocabularyEntries: number;
+    rebuiltVocabularyEntries: number;
   };
   books: HtmlBook[];
 };

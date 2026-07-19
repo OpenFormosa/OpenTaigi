@@ -425,7 +425,10 @@ def build(source_root: Path, output_path: Path) -> None:
         "books": books,
     }
     rebuilt_vocabulary = rebuild_vocabulary(payload)
-    payload["stats"]["vocabularyEntries"] = rebuilt_vocabulary
+    payload["stats"]["vocabularyEntries"] = len(
+        json.loads((DATA_ROOT / "vocabulary.json").read_text(encoding="utf-8"))
+    )
+    payload["stats"]["rebuiltVocabularyEntries"] = rebuilt_vocabulary
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
