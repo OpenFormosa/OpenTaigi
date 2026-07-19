@@ -12,6 +12,8 @@ import {
 type Mode = "reader" | "vocabulary" | "sentences";
 type ReaderView = "reading" | "layout";
 type Volume = "上冊" | "下冊";
+type LearnerLevel = "starter" | "everyday" | "advanced";
+type HintMode = "full" | "romanization" | "challenge";
 
 type Hotspot = {
   id: string;
@@ -158,6 +160,133 @@ const fallbackBooks = [
   ["附", "補充", "主管機關補充資料", "2", "#17120d"],
 ];
 
+const learnerLevels: Record<
+  LearnerLevel,
+  {
+    index: string;
+    name: string;
+    short: string;
+    description: string;
+    goal: string;
+    pace: string;
+    hintMode: HintMode;
+    speed: number;
+    fontScale: number;
+    color: string;
+    steps: Array<{
+      label: string;
+      title: string;
+      detail: string;
+      action: "book" | "vocabulary" | "sentences";
+      bookId?: string;
+      page?: number;
+    }>;
+  }
+> = {
+  starter: {
+    index: "01",
+    name: "初學起步",
+    short: "頭一擺學",
+    description: "看華語與台羅提示，放慢速度，先聽清楚再開口。",
+    goal: "認得拼音、聽出聲調，累積第一批生活語詞。",
+    pace: "完整提示 · 0.75× 慢速",
+    hintMode: "full",
+    speed: 0.75,
+    fontScale: 1.12,
+    color: "#154f83",
+    steps: [
+      {
+        label: "先聽",
+        title: "拼音與聲調",
+        detail: "從發音教材開始，點每一個音反覆聽。",
+        action: "book",
+        bookId: "pronunciation",
+        page: 2,
+      },
+      {
+        label: "再認",
+        title: "常用語詞",
+        detail: "同時看台文、台羅與華語，建立連結。",
+        action: "vocabulary",
+      },
+      {
+        label: "開口",
+        title: "生活短句",
+        detail: "聽一句、跟講一句，再核對意思。",
+        action: "sentences",
+      },
+    ],
+  },
+  everyday: {
+    index: "02",
+    name: "生活應用",
+    short: "會講一寡",
+    description: "保留台羅、先收起華語，用生活情境練自然反應。",
+    goal: "把已經聽過的詞組成句，增加日常對話的流暢度。",
+    pace: "台羅提示 · 1× 原速",
+    hintMode: "romanization",
+    speed: 1,
+    fontScale: 1,
+    color: "#0b6b50",
+    steps: [
+      {
+        label: "暖身",
+        title: "情境聽句",
+        detail: "先聽真人發音，不看華語猜語意。",
+        action: "sentences",
+      },
+      {
+        label: "補詞",
+        title: "主題語詞",
+        detail: "從不熟的句子回頭查詞與例詞。",
+        action: "vocabulary",
+      },
+      {
+        label: "複述",
+        title: "隨機練習",
+        detail: "換一句、跟講、再揭開答案核對。",
+        action: "sentences",
+      },
+    ],
+  },
+  advanced: {
+    index: "03",
+    name: "進階讀寫",
+    short: "欲讀長文",
+    description: "預設隱藏提示，直接讀文章、查全文、辨認細節。",
+    goal: "閱讀完整篇章，掌握台文用字與較長語境。",
+    pace: "挑戰模式 · 1.25× 快速",
+    hintMode: "challenge",
+    speed: 1.25,
+    fontScale: 0.95,
+    color: "#c64332",
+    steps: [
+      {
+        label: "精讀",
+        title: "文章上冊",
+        detail: "讀 HTML 長文，用全文搜尋追詞語。",
+        action: "book",
+        bookId: "articles-1",
+        page: 2,
+      },
+      {
+        label: "延伸",
+        title: "文章下冊",
+        detail: "換一篇讀，對照原版排版與真人發音。",
+        action: "book",
+        bookId: "articles-2",
+        page: 2,
+      },
+      {
+        label: "自測",
+        title: "無提示聽句",
+        detail: "先不看台羅與華語，測試理解程度。",
+        action: "sentences",
+      },
+    ],
+  },
+};
+
 function parseCsvLine(line: string) {
   const values: string[] = [];
   let value = "";
@@ -244,6 +373,18 @@ function loadLastPlace(): LastPlace | null {
   return null;
 }
 
+function loadLearnerLevel(): LearnerLevel {
+  try {
+    const value = localStorage.getItem("opentaigi-learner-level");
+    if (value === "starter" || value === "everyday" || value === "advanced") {
+      return value;
+    }
+  } catch {
+    // Use the welcoming starter profile if preferences are unavailable.
+  }
+  return "starter";
+}
+
 function escapeExpression(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -304,6 +445,10 @@ export function TaigiApp() {
   const [sentences, setSentences] = useState<Sentence[]>([]);
   const [mode, setMode] = useState<Mode>("reader");
   const [readerView, setReaderView] = useState<ReaderView>("reading");
+  const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>(() =>
+    typeof window === "undefined" ? "starter" : loadLearnerLevel(),
+  );
+  const [hintMode, setHintMode] = useState<HintMode>("full");
   const [activeBookId, setActiveBookId] = useState("pronunciation");
   const [pageNumber, setPageNumber] = useState(2);
   const [readerQuery, setReaderQuery] = useState("");
@@ -328,6 +473,9 @@ export function TaigiApp() {
     useState<"全部" | Volume>("全部");
   const [visibleVocabulary, setVisibleVocabulary] = useState(60);
   const [revealedWords, setRevealedWords] = useState<Set<string>>(new Set());
+  const [revealedSentences, setRevealedSentences] = useState<Set<string>>(
+    new Set(),
+  );
   const [sentenceSearch, setSentenceSearch] = useState("");
   const [sentenceVolume, setSentenceVolume] =
     useState<"全部" | Volume>("全部");
@@ -339,6 +487,7 @@ export function TaigiApp() {
   const [showPracticeAnswer, setShowPracticeAnswer] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const audioRef = useRef<HTMLAudioElement>(null);
+  const learnerProfile = learnerLevels[learnerLevel];
 
   useEffect(() => {
     Promise.all([
@@ -382,6 +531,18 @@ export function TaigiApp() {
     const frame = window.requestAnimationFrame(() => {
       setTheme(nextTheme);
       document.documentElement.dataset.theme = nextTheme;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    const savedLevel = loadLearnerLevel();
+    const profile = learnerLevels[savedLevel];
+    const frame = window.requestAnimationFrame(() => {
+      setLearnerLevel(savedLevel);
+      setHintMode(profile.hintMode);
+      setSpeed(profile.speed);
+      setFontScale(profile.fontScale);
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
@@ -574,9 +735,32 @@ export function TaigiApp() {
     localStorage.setItem("opentaigi-theme", nextTheme);
   };
 
+  const chooseLearnerLevel = (level: LearnerLevel) => {
+    const profile = learnerLevels[level];
+    setLearnerLevel(level);
+    setHintMode(profile.hintMode);
+    setSpeed(profile.speed);
+    setFontScale(profile.fontScale);
+    setReaderView("reading");
+    setRevealedWords(new Set());
+    setRevealedSentences(new Set());
+    setShowPracticeAnswer(false);
+    localStorage.setItem("opentaigi-learner-level", level);
+  };
+
+  const openLearningStep = (
+    step: (typeof learnerLevels)[LearnerLevel]["steps"][number],
+  ) => {
+    if (step.action === "book") {
+      if (step.bookId) openBook(step.bookId, step.page ?? 2);
+      return;
+    }
+    switchMode(step.action);
+  };
+
   const navigateLastPlace = () => {
     if (lastPlace) openBook(lastPlace.bookId, lastPlace.page);
-    else openBook("pronunciation", 2);
+    else openLearningStep(learnerProfile.steps[0]);
   };
 
   const completeCount = activeBook
@@ -595,10 +779,10 @@ export function TaigiApp() {
             </span>
           </a>
           <nav className="site-nav" aria-label="主要導覽">
-            <a href="#books">教材</a>
+            <a href="#levels">分級路線</a>
+            <a href="#books">全部教材</a>
             <button onClick={() => switchMode("vocabulary")}>語詞</button>
             <button onClick={() => switchMode("sentences")}>語句</button>
-            <a href="#about">關於</a>
           </nav>
           <div className="nav-actions">
             <button
@@ -618,67 +802,70 @@ export function TaigiApp() {
       <main>
         <section className="hero section-pad">
           <div className="hero-copy">
-            <p className="eyebrow">台灣語言教材的完整 HTML 版本</p>
+            <p className="eyebrow">揀適合你的學習方式</p>
             <h1>
-              <span>毋免縮放 PDF，</span>
-              <span>直接讀、聽、</span>
-              <span>練台語。</span>
+              <span>程度無仝，</span>
+              <span>學台語的路</span>
+              <span>嘛袂仝。</span>
             </h1>
             <p className="lede">
-              《咱來學臺灣閩南語》八冊內容已轉為真正的網頁文字。
-              可以搜尋、選取、調字級、手機重排，也保留 4,349 段真人發音。
+              不論是第一次學、已經會講一點，或想讀完整文章，
+              系統都會調整提示、播放速度、字級與推薦教材；八冊內容仍然完整保留。
             </p>
           </div>
 
-          <aside className="release-board" aria-label="HTML 版本狀態">
+          <aside
+            className="release-board learner-ticket"
+            aria-label={`目前選擇：${learnerProfile.name}`}
+            style={{ "--level-color": learnerProfile.color } as CSSProperties}
+          >
             <header>
-              <span>OPEN TEXTBOOK / 01</span>
-              <b>HTML</b>
+              <span>YOUR LEARNING EDITION</span>
+              <b>{learnerProfile.index}</b>
             </header>
             <div className="release-title">
-              <p>完整轉換狀態</p>
-              <strong>217 / 217</strong>
-              <span>PDF 頁面已網頁化</span>
+              <p>{learnerProfile.short}</p>
+              <strong>{learnerProfile.name}</strong>
+              <span>{learnerProfile.goal}</span>
             </div>
             <dl>
               <div>
-                <dt>可搜尋文字</dt>
-                <dd>182,475 字</dd>
+                <dt>學習提示</dt>
+                <dd>{learnerProfile.pace.split(" · ")[0]}</dd>
               </div>
               <div>
-                <dt>HTML 文字行</dt>
-                <dd>12,189 行</dd>
+                <dt>播放速度</dt>
+                <dd>{learnerProfile.speed}×</dd>
               </div>
               <div>
-                <dt>真人錄音</dt>
-                <dd>4,349 段</dd>
+                <dt>完整教材</dt>
+                <dd>217 頁</dd>
               </div>
             </dl>
             <div className="release-status">
               <i />
-              <span>資料與介面已連線</span>
+              <span>設定會保留在這台裝置</span>
             </div>
           </aside>
 
-          <div className="hero-choices">
-            <button onClick={() => openBook("pronunciation", 2)}>
-              <span>01</span>
-              <strong>讀全文</strong>
-              <p>八冊逐頁 HTML 閱讀，保留原版版面定位。</p>
-              <em>開啟閱讀器 ↗</em>
-            </button>
-            <button onClick={() => switchMode("vocabulary")}>
-              <span>02</span>
-              <strong>練語詞</strong>
-              <p>852 詞，查台文、台羅、華語與例詞。</p>
-              <em>開始查詞 ↗</em>
-            </button>
-            <button onClick={() => switchMode("sentences")}>
-              <span>03</span>
-              <strong>聽語句</strong>
-              <p>840 句生活台語，依十六類主題練習。</p>
-              <em>開始聽講 ↗</em>
-            </button>
+          <div className="level-picker" id="levels" aria-label="選擇學習程度">
+            {(Object.entries(learnerLevels) as Array<
+              [LearnerLevel, (typeof learnerLevels)[LearnerLevel]]
+            >).map(([id, profile]) => (
+              <button
+                key={id}
+                className={learnerLevel === id ? "active" : ""}
+                aria-pressed={learnerLevel === id}
+                onClick={() => chooseLearnerLevel(id)}
+                style={{ "--level-color": profile.color } as CSSProperties}
+              >
+                <span>{profile.index}</span>
+                <small>{profile.short}</small>
+                <strong>{profile.name}</strong>
+                <p>{profile.description}</p>
+                <em>{learnerLevel === id ? "目前選擇 ✓" : "選這條路線 ↗"}</em>
+              </button>
+            ))}
           </div>
         </section>
 
@@ -686,33 +873,50 @@ export function TaigiApp() {
           <div className="section-pad">
             <header className="section-head">
               <div>
-                <p className="eyebrow">四階段學習路線</p>
-                <h2>聲、詞、句、文，逐步來。</h2>
+                <p className="eyebrow">你的推薦路線 / {learnerProfile.index}</p>
+                <h2>{learnerProfile.goal}</h2>
               </div>
               <p>
-                每一冊都能用「閱讀模式」重新排版，也能切回
-                「原版模式」查看 PDF 的文字位置。兩種模式都是真正的 HTML。
+                這條路線不是鎖定課程；任何時候都能切換程度、提示方式，
+                或直接打開下方八冊完整教材。
               </p>
             </header>
 
-            <div className="route-grid">
-              {[
-                ["01", "學聲音", "拼音", "聲母、韻母、聲調與變調", "#154f83"],
-                ["02", "認語詞", "語詞", "852 個常用詞與真人例詞", "#0b6b50"],
-                ["03", "講語句", "語句", "840 句生活台語與十六主題", "#c99022"],
-                ["04", "讀文章", "文章", "短文、詞彙與文法解說", "#c64332"],
-              ].map(([number, title, label, description, color]) => (
-                <article
-                  key={number}
-                  style={{ "--route-color": color } as CSSProperties}
-                >
-                  <span>{number}</span>
-                  <small>{label}</small>
-                  <h3>{title}</h3>
-                  <p>{description}</p>
-                </article>
-              ))}
+            <div
+              className="personal-route"
+              style={{ "--level-color": learnerProfile.color } as CSSProperties}
+            >
+              <header>
+                <span>建議順序</span>
+                <strong>{learnerProfile.pace}</strong>
+              </header>
+              <div>
+                {learnerProfile.steps.map((step, index) => (
+                  <button
+                    key={`${learnerLevel}-${step.title}`}
+                    onClick={() => openLearningStep(step)}
+                  >
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <small>{step.label}</small>
+                    <strong>{step.title}</strong>
+                    <p>{step.detail}</p>
+                    <b aria-hidden="true">↗</b>
+                  </button>
+                ))}
+              </div>
+              <footer>
+                <span>完整提示會顯示華語與台羅；挑戰模式會先把兩者收起來。</span>
+                <a href="#learn">直接進入學習區 ↓</a>
+              </footer>
             </div>
+
+            <header className="library-head">
+              <div>
+                <small>FULL LIBRARY</small>
+                <strong>八冊完整教材</strong>
+              </div>
+              <p>聲、詞、句、文全數開放，不受目前程度限制。</p>
+            </header>
 
             <div className="book-list">
               {(curriculum?.books ?? []).length
@@ -752,6 +956,18 @@ export function TaigiApp() {
         </section>
 
         <section className="learning-lab" id="learn">
+          <div
+            className="learner-context section-pad"
+            style={{ "--level-color": learnerProfile.color } as CSSProperties}
+          >
+            <div>
+              <span>目前程度</span>
+              <strong>{learnerProfile.name}</strong>
+              <small>{learnerProfile.pace}</small>
+            </div>
+            <p>{learnerProfile.description}</p>
+            <a href="#levels">調整程度 ↑</a>
+          </div>
           <div className="mode-tabs section-pad" role="tablist" aria-label="學習工具">
             {[
               ["reader", "01", "全文閱讀"],
@@ -1214,6 +1430,27 @@ export function TaigiApp() {
                     </button>
                   ))}
                 </div>
+                <div className="hint-controls" aria-label="提示顯示方式">
+                  <span>提示</span>
+                  {(
+                    [
+                      ["full", "完整"],
+                      ["romanization", "台羅"],
+                      ["challenge", "挑戰"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      className={hintMode === value ? "active" : ""}
+                      onClick={() => {
+                        setHintMode(value);
+                        setRevealedWords(new Set());
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <strong>
                   {filteredVocabulary.length}
                   <small> 詞</small>
@@ -1230,7 +1467,11 @@ export function TaigiApp() {
                 {filteredVocabulary
                   .slice(0, visibleVocabulary)
                   .map((entry) => {
-                    const revealed = revealedWords.has(entry.id);
+                    const manuallyRevealed = revealedWords.has(entry.id);
+                    const showRomanization =
+                      hintMode !== "challenge" || manuallyRevealed;
+                    const showMeaning =
+                      hintMode === "full" || manuallyRevealed;
                     return (
                       <article key={entry.id}>
                         <button
@@ -1242,20 +1483,26 @@ export function TaigiApp() {
                         </button>
                         <div className="entry-word">
                           <strong>{entry.headword}</strong>
-                          <i>{entry.romanization || "—"}</i>
+                          <i>
+                            {showRomanization
+                              ? entry.romanization || "—"
+                              : "台羅提示已收起"}
+                          </i>
                         </div>
                         <button
-                          className={`entry-meaning ${revealed ? "revealed" : ""}`}
+                          className={`entry-meaning ${showMeaning ? "revealed" : ""}`}
                           onClick={() => {
                             const next = new Set(revealedWords);
-                            if (revealed) next.delete(entry.id);
+                            if (manuallyRevealed) next.delete(entry.id);
                             else next.add(entry.id);
                             setRevealedWords(next);
                           }}
                         >
-                          <span>{revealed ? entry.meaning : "按一下看華語"}</span>
+                          <span>
+                            {showMeaning ? entry.meaning : "按一下看華語"}
+                          </span>
                           <small>
-                            {revealed && entry.examples
+                            {showMeaning && entry.examples
                               ? entry.examples
                               : "先想一下這个詞是啥物意思"}
                           </small>
@@ -1390,6 +1637,27 @@ export function TaigiApp() {
                     </button>
                   ))}
                 </div>
+                <div className="hint-controls" aria-label="提示顯示方式">
+                  <span>提示</span>
+                  {(
+                    [
+                      ["full", "完整"],
+                      ["romanization", "台羅"],
+                      ["challenge", "挑戰"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      className={hintMode === value ? "active" : ""}
+                      onClick={() => {
+                        setHintMode(value);
+                        setRevealedSentences(new Set());
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <strong>
                   {filteredSentences.length}
                   <small> 句</small>
@@ -1405,28 +1673,51 @@ export function TaigiApp() {
                 </div>
                 {filteredSentences
                   .slice(0, visibleSentences)
-                  .map((sentence) => (
-                    <article key={sentence.id}>
-                      <span className="sentence-topic">
-                        {sentence.volume === "上冊" ? "上" : "下"} ·
-                        {chapterName(sentence.chapter)}
-                      </span>
-                      <div className="sentence-copy">
-                        <strong>{sentence.hanji}</strong>
-                        <i>{sentence.lomaji}</i>
-                      </div>
-                      <span className="sentence-meaning">{sentence.huagi}</span>
-                      <button
-                        className="sentence-play"
-                        onClick={() =>
-                          playAudio(sentenceAudio(sentence), sentence.hanji)
-                        }
-                        aria-label={`播放${sentence.hanji}`}
-                      >
-                        ▶
-                      </button>
-                    </article>
-                  ))}
+                  .map((sentence) => {
+                    const manuallyRevealed = revealedSentences.has(sentence.id);
+                    const showRomanization =
+                      hintMode !== "challenge" || manuallyRevealed;
+                    const showMeaning =
+                      hintMode === "full" || manuallyRevealed;
+                    return (
+                      <article key={sentence.id}>
+                        <span className="sentence-topic">
+                          {sentence.volume === "上冊" ? "上" : "下"} ·
+                          {chapterName(sentence.chapter)}
+                        </span>
+                        <div className="sentence-copy">
+                          <strong>{sentence.hanji}</strong>
+                          <i>
+                            {showRomanization
+                              ? sentence.lomaji
+                              : "台羅提示已收起"}
+                          </i>
+                        </div>
+                        <button
+                          className={`sentence-meaning ${
+                            showMeaning ? "revealed" : ""
+                          }`}
+                          onClick={() => {
+                            const next = new Set(revealedSentences);
+                            if (manuallyRevealed) next.delete(sentence.id);
+                            else next.add(sentence.id);
+                            setRevealedSentences(next);
+                          }}
+                        >
+                          {showMeaning ? sentence.huagi : "按一下看華語"}
+                        </button>
+                        <button
+                          className="sentence-play"
+                          onClick={() =>
+                            playAudio(sentenceAudio(sentence), sentence.hanji)
+                          }
+                          aria-label={`播放${sentence.hanji}`}
+                        >
+                          ▶
+                        </button>
+                      </article>
+                    );
+                  })}
               </div>
               {filteredSentences.length === 0 && (
                 <div className="empty-state">

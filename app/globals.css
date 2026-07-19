@@ -314,7 +314,7 @@ mark {
 .release-board > header b {
   padding: 5px 8px;
   color: var(--inverse);
-  background: var(--green);
+  background: var(--level-color, var(--green));
 }
 
 .release-title {
@@ -374,63 +374,99 @@ mark {
 .release-status i {
   width: 9px;
   height: 9px;
-  background: var(--green);
+  background: var(--level-color, var(--green));
   border-radius: 50%;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 16%, transparent);
+  box-shadow: 0 0 0 4px
+    color-mix(in srgb, var(--level-color, var(--green)) 16%, transparent);
 }
 
-.hero-choices {
+.learner-ticket .release-title {
+  border-left: 10px solid var(--level-color);
+}
+
+.learner-ticket .release-title strong {
+  font-size: clamp(38px, 4vw, 54px);
+}
+
+.learner-ticket .release-title span {
+  display: block;
+  margin-top: 12px;
+  line-height: 1.65;
+}
+
+.level-picker {
   grid-column: 1 / -1;
-  width: min(900px, 100%);
-  justify-self: center;
+  scroll-margin-top: 100px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  border: 2px solid var(--line-strong);
 }
 
-.hero-choices button {
-  min-height: 190px;
-  padding: 18px;
+.level-picker button {
+  min-height: 230px;
+  padding: 20px;
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr auto;
   align-items: start;
   gap: 8px;
   text-align: left;
-  background: var(--surface);
-  border: 2px solid var(--line-strong);
-  border-radius: 4px;
+  background: transparent;
+  border: 0;
+  border-top: 9px solid var(--level-color);
 }
 
-.hero-choices button:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: 5px 5px 0 var(--shadow);
+.level-picker button + button {
+  border-left: 1px solid var(--line-strong);
 }
 
-.hero-choices button > span {
+.level-picker button:hover {
+  background: color-mix(in srgb, var(--level-color) 8%, var(--surface));
+}
+
+.level-picker button.active {
+  color: var(--inverse);
+  background: var(--level-color);
+}
+
+.level-picker button > span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.15em;
 }
 
-.hero-choices button > strong {
-  grid-column: 1 / -1;
-  font-family: var(--serif);
-  font-size: 27px;
+.level-picker button.active > span,
+.level-picker button.active > small,
+.level-picker button.active > p,
+.level-picker button.active > em {
+  color: var(--inverse);
 }
 
-.hero-choices button > p {
+.level-picker button > small {
+  color: var(--level-color);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.level-picker button > strong {
+  grid-column: 1 / -1;
+  font-family: var(--serif);
+  font-size: 28px;
+}
+
+.level-picker button > p {
   grid-column: 1 / -1;
   margin: 0;
   color: var(--muted);
   font-size: 14px;
+  line-height: 1.65;
 }
 
-.hero-choices button > em {
+.level-picker button > em {
   grid-column: 1 / -1;
   align-self: end;
-  color: var(--green);
+  color: var(--level-color);
   font-size: 13px;
   font-style: normal;
   font-weight: 900;
@@ -467,57 +503,138 @@ mark {
   line-height: 1.8;
 }
 
-.route-grid {
+.personal-route {
   margin-top: 40px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
   border: 2px solid var(--line-strong);
+  border-top: 10px solid var(--level-color);
+  background: var(--surface);
 }
 
-.route-grid article {
-  min-height: 215px;
+.personal-route > header,
+.personal-route > footer {
+  min-height: 52px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  font-size: 12px;
+}
+
+.personal-route > header {
+  border-bottom: 2px solid var(--line-strong);
+}
+
+.personal-route > header span {
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.personal-route > header strong {
+  color: var(--level-color);
+}
+
+.personal-route > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.personal-route > div button {
+  min-height: 220px;
   padding: 20px;
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto 1fr auto;
   align-items: start;
-  border-left: 8px solid var(--route-color);
+  gap: 8px;
+  text-align: left;
+  background: transparent;
+  border: 0;
 }
 
-.route-grid article + article {
-  border-top: 0;
-  border-left-width: 2px;
-  border-left-color: var(--line-strong);
-  box-shadow: inset 8px 0 0 var(--route-color);
-  padding-left: 28px;
+.personal-route > div button + button {
+  border-left: 1px solid var(--line-strong);
 }
 
-.route-grid article > span {
+.personal-route > div button:hover {
+  background: color-mix(in srgb, var(--level-color) 8%, var(--surface));
+}
+
+.personal-route > div button > span {
   font-size: 12px;
   font-weight: 900;
 }
 
-.route-grid article > small {
-  color: var(--route-color);
+.personal-route > div button > small {
+  color: var(--level-color);
   font-weight: 900;
 }
 
-.route-grid h3 {
+.personal-route > div button > strong {
   grid-column: 1 / -1;
-  margin: 24px 0 6px;
+  margin-top: 18px;
   font-family: var(--serif);
   font-size: 26px;
 }
 
-.route-grid p {
+.personal-route > div button > p {
   grid-column: 1 / -1;
   margin: 0;
   color: var(--muted);
   font-size: 14px;
 }
 
+.personal-route > div button > b {
+  grid-column: 1 / -1;
+  align-self: end;
+  color: var(--level-color);
+  font-size: 18px;
+}
+
+.personal-route > footer {
+  color: var(--muted);
+  border-top: 1px solid var(--line-strong);
+}
+
+.personal-route > footer a {
+  flex: 0 0 auto;
+  color: var(--level-color);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.library-head {
+  margin-top: 58px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 28px;
+}
+
+.library-head > div {
+  display: grid;
+}
+
+.library-head small {
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.library-head strong {
+  font-family: var(--serif);
+  font-size: 32px;
+}
+
+.library-head p {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .book-list {
-  margin-top: 32px;
+  margin-top: 16px;
   border-top: 2px solid var(--line-strong);
 }
 
@@ -577,6 +694,50 @@ mark {
 .learning-lab {
   min-height: 780px;
   padding-bottom: 96px;
+}
+
+.learner-context {
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  background: var(--surface);
+  border-inline: 2px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  box-shadow: inset 9px 0 0 var(--level-color);
+}
+
+.learner-context > div {
+  padding-left: 22px;
+  display: grid;
+}
+
+.learner-context > div span,
+.learner-context > div small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+}
+
+.learner-context > div strong {
+  font-family: var(--serif);
+  font-size: 22px;
+}
+
+.learner-context > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.learner-context > a {
+  margin-right: 18px;
+  color: var(--level-color);
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .mode-tabs {
@@ -1422,7 +1583,7 @@ mark {
   margin-top: 34px;
   padding: 12px;
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) auto auto;
+  grid-template-columns: minmax(240px, 1fr) auto auto auto;
   gap: 10px;
   align-items: end;
   background: var(--surface);
@@ -1463,7 +1624,44 @@ mark {
 }
 
 .sentence-tools {
-  grid-template-columns: minmax(220px, 1fr) 170px auto auto;
+  grid-template-columns: minmax(210px, 1fr) 160px auto auto auto;
+}
+
+.hint-controls {
+  min-height: 42px;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line-strong);
+}
+
+.hint-controls > span {
+  padding-inline: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: var(--panel);
+  border-right: 1px solid var(--line-strong);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.hint-controls button {
+  min-width: 44px;
+  padding-inline: 8px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.hint-controls button + button {
+  border-left: 1px solid var(--line);
+}
+
+.hint-controls button.active {
+  color: var(--inverse);
+  background: var(--ink);
 }
 
 .data-table {
@@ -1698,8 +1896,19 @@ mark {
 }
 
 .sentence-meaning {
+  min-height: 42px;
+  padding: 7px 9px;
+  text-align: left;
   color: var(--muted);
+  background: var(--panel);
+  border: 1px dashed var(--line-strong);
   font-size: 14px;
+}
+
+.sentence-meaning.revealed {
+  color: var(--ink);
+  background: transparent;
+  border-color: transparent;
 }
 
 .sentence-play {
@@ -1937,21 +2146,6 @@ mark {
     width: min(620px, 100%);
   }
 
-  .route-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .route-grid article:nth-child(3) {
-    border-top: 2px solid var(--line-strong);
-    border-left: 8px solid var(--route-color);
-    box-shadow: none;
-    padding-left: 20px;
-  }
-
-  .route-grid article:nth-child(4) {
-    border-top: 2px solid var(--line-strong);
-  }
-
   .reader-shell {
     grid-template-columns: 1fr;
   }
@@ -1989,8 +2183,16 @@ mark {
     grid-template-columns: 68px minmax(135px, 0.75fr) minmax(190px, 1.25fr) 128px;
   }
 
+  .database-tools {
+    grid-template-columns: minmax(220px, 1fr) auto auto;
+  }
+
+  .database-tools > label {
+    grid-column: 1 / -1;
+  }
+
   .sentence-tools {
-    grid-template-columns: 1fr 150px;
+    grid-template-columns: 1fr 150px auto;
   }
 
   .sentence-tools .segmented {
@@ -2062,12 +2264,52 @@ mark {
     box-shadow: 6px 6px 0 var(--shadow);
   }
 
-  .hero-choices {
+  .level-picker {
     grid-template-columns: 1fr;
   }
 
-  .hero-choices button {
-    min-height: 150px;
+  .level-picker button {
+    min-height: 190px;
+  }
+
+  .level-picker button + button {
+    border-top: 1px solid var(--line-strong);
+    border-left: 0;
+  }
+
+  .personal-route > div {
+    grid-template-columns: 1fr;
+  }
+
+  .personal-route > div button {
+    min-height: 175px;
+  }
+
+  .personal-route > div button + button {
+    border-top: 1px solid var(--line-strong);
+    border-left: 0;
+  }
+
+  .personal-route > footer,
+  .library-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .learner-context {
+    grid-template-columns: 1fr auto;
+    gap: 10px 18px;
+    padding-block: 13px;
+  }
+
+  .learner-context > p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding: 0 18px 0 22px;
+  }
+
+  .learner-context > a {
+    margin-right: 14px;
   }
 
   .route-section {
@@ -2085,29 +2327,6 @@ mark {
   .database-head h2,
   .about-grid h2 {
     font-size: 42px;
-  }
-
-  .route-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .route-grid article,
-  .route-grid article + article,
-  .route-grid article:nth-child(3),
-  .route-grid article:nth-child(4) {
-    min-height: 155px;
-    padding: 17px 17px 17px 25px;
-    border-top: 1px solid var(--line-strong);
-    border-left: 8px solid var(--route-color);
-    box-shadow: none;
-  }
-
-  .route-grid article:first-child {
-    border-top: 0;
-  }
-
-  .route-grid h3 {
-    margin-top: 13px;
   }
 
   .book-list > button,
@@ -2232,6 +2451,10 @@ mark {
   }
 
   .sentence-tools > select {
+    grid-column: 1 / -1;
+  }
+
+  .hint-controls {
     grid-column: 1 / -1;
   }
 

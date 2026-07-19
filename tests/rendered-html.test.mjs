@@ -29,14 +29,18 @@ test("server-renders the complete Taigi HTML learning experience", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>咱來學台語｜八冊完整互動教材<\/title>/i);
-  assert.match(html, /毋免縮放 PDF/);
-  assert.match(html, /217 \/ 217/);
-  assert.match(html, /四階段學習路線/);
+  assert.match(
+    html,
+    /<title>咱來學台語｜依程度學習的互動教材<\/title>/i,
+  );
+  assert.match(html, /程度無仝/);
+  assert.match(html, /初學起步/);
+  assert.match(html, /生活應用/);
+  assert.match(html, /進階讀寫/);
+  assert.match(html, /八冊完整教材/);
   assert.match(html, /全文閱讀/);
   assert.match(html, /語詞資料庫/);
   assert.match(html, /生活語句/);
-  assert.match(html, /4,349/);
   assert.doesNotMatch(html, /Your site is taking shape|codex-preview/);
 });
 
@@ -128,9 +132,18 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(component, /showAudio/);
   assert.match(component, /empty-state/);
   assert.match(component, /audio-dock/);
+  assert.match(component, /opentaigi-learner-level/);
+  assert.match(component, /learnerLevels/);
+  assert.match(component, /hintMode/);
+  assert.match(component, /初學起步/);
+  assert.match(component, /生活應用/);
+  assert.match(component, /進階讀寫/);
   assert.match(component, /pageNumber === 1[\s\S]*activePage\.image/);
   assert.doesNotMatch(component, /<img[\s\S]{0,120}activeHtmlPage\.text/);
   assert.match(css, /\.mode-tabs\s*\{[^}]*position: sticky/s);
   assert.match(css, /\.reading-sheet/);
   assert.match(css, /\.empty-state/);
+  assert.match(css, /\.level-picker/);
+  assert.match(css, /\.personal-route/);
+  assert.match(css, /\.hint-controls/);
 });
