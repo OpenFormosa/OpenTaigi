@@ -8,10 +8,13 @@
 
 ## 學習功能
 
+- 217 頁 PDF 全文轉成可搜尋、可選取、可重排的 HTML
+- 閱讀模式適合手機，原版模式保留來源文字的位置與比例
 - 840 句生活台語全文搜尋與 16 類主題篩選
 - 真人發音、播放速度、羅馬字與華語提示切換
-- 隨堂選擇題、收藏與學習進度
-- 拼音、語詞、語句、文章四階段原始教材入口
+- 隨機語句練習、頁面閱讀進度與繼續閱讀
+- 852 個校正後的語詞、台羅、華語與例詞
+- 拼音、語詞、語句、文章四階段教材入口
 - 響應式版面與 GitHub Pages 自動部署
 
 ## 本機開發
@@ -29,6 +32,18 @@ npm run build:pages
 ```
 
 推送到 `main` 後，GitHub Actions 會自動發佈 GitHub Pages。
+
+## 重新產生教材資料
+
+原 PDF 含隱藏圖層與裁切內容，不能用一般文字擷取器直接讀取。
+`build_html_curriculum.py` 使用 PyMuPDF 只讀取實際顯示的文字層，
+再輸出定位版與手機閱讀版共用的資料。
+
+```bash
+python -m pip install -r scripts/requirements-pdf.txt
+python scripts/build_curriculum.py /path/to/Lan-Lai-Oh-Taigi --skip-render
+python scripts/build_html_curriculum.py /path/to/Lan-Lai-Oh-Taigi
+```
 
 ## 資料來源
 

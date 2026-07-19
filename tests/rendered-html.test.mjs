@@ -23,19 +23,19 @@ async function render() {
   );
 }
 
-test("server-renders the complete Taigi learning experience", async () => {
+test("server-renders the complete Taigi HTML learning experience", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<title>咱來學台語｜八冊完整互動教材<\/title>/i);
-  assert.match(html, /一頁一頁，/);
-  assert.match(html, /八冊，攏佇遮/);
-  assert.match(html, /原書的所在，就是互動的所在/);
-  assert.match(html, /原頁精讀/);
-  assert.match(html, /語詞卡/);
-  assert.match(html, /217/);
+  assert.match(html, /毋免縮放 PDF/);
+  assert.match(html, /217 \/ 217/);
+  assert.match(html, /四階段學習路線/);
+  assert.match(html, /全文閱讀/);
+  assert.match(html, /語詞資料庫/);
+  assert.match(html, /生活語句/);
   assert.match(html, /4,349/);
   assert.doesNotMatch(html, /Your site is taking shape|codex-preview/);
 });
@@ -52,72 +52,84 @@ test("ships both 420-sentence source volumes", async () => {
   assert.match(volumeTwo, /這曷著講？,Tse a̍h-tio̍h kóng/);
 });
 
-test("includes responsive, accessible interaction styles", async () => {
+test("includes OpenFormosa styling and responsive interaction", async () => {
   const css = await readFile(
     new URL("../app/globals.css", import.meta.url),
     "utf8",
   );
 
   assert.match(css, /@media \(max-width: 760px\)/);
-  assert.match(css, /\.reader-page-canvas/);
-  assert.match(css, /\.audio-hotspot/);
-  assert.match(
-    css,
-    /\.brand small\s*\{[^}]*font-family: var\(--latin-serif\)[^}]*letter-spacing: normal/s,
-  );
-  assert.match(css, /--latin-serif: "Times New Roman"/);
+  assert.match(css, /\.reading-columns/);
+  assert.match(css, /\.layout-sheet/);
+  assert.match(css, /\.layout-audio/);
+  assert.match(css, /--paper:\s*#f2eadc/);
+  assert.match(css, /--green:\s*#0b6b50/);
+  assert.match(css, /background-size: 28px 28px/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /prefers-reduced-motion/);
 });
 
-test("ships every PDF spread and its interactive audio map", async () => {
-  const curriculum = JSON.parse(
-    await readFile(
+test("ships every PDF page as HTML text plus its audio map", async () => {
+  const [curriculum, vocabulary, htmlCurriculum] = await Promise.all([
+    readFile(
       new URL("../public/data/curriculum.json", import.meta.url),
       "utf8",
-    ),
-  );
-  const vocabulary = JSON.parse(
-    await readFile(
+    ).then(JSON.parse),
+    readFile(
       new URL("../public/data/vocabulary.json", import.meta.url),
       "utf8",
-    ),
-  );
+    ).then(JSON.parse),
+    readFile(
+      new URL("../public/data/html-curriculum.json", import.meta.url),
+      "utf8",
+    ).then(JSON.parse),
+  ]);
 
   assert.equal(curriculum.books.length, 8);
   assert.equal(curriculum.stats.pages, 217);
   assert.equal(curriculum.stats.audioFiles, 4349);
   assert.ok(curriculum.stats.hotspots > 4300);
-  assert.ok(vocabulary.length > 800);
+  assert.equal(vocabulary.length, 852);
+  assert.equal(vocabulary[0].headword, "阿");
+  assert.equal(vocabulary[0].romanization, "a");
 
   const pages = curriculum.books.flatMap((book) => book.pages);
   assert.equal(pages.length, 217);
-  assert.ok(pages.every((page) => page.image.endsWith(".webp")));
   assert.ok(
     pages
       .flatMap((page) => page.hotspots)
       .every((hotspot) => hotspot.x >= 0 && hotspot.y >= 0),
   );
 
-  const firstPageImage = new URL(
-    `../public/${pages[0].image.replace(/^\.\//, "")}`,
-    import.meta.url,
+  assert.equal(htmlCurriculum.format, "html-text-layout-v1");
+  assert.equal(htmlCurriculum.books.length, 8);
+  assert.equal(htmlCurriculum.stats.pages, 217);
+  assert.ok(htmlCurriculum.stats.lines > 12_000);
+  assert.ok(htmlCurriculum.stats.characters > 180_000);
+  assert.equal(
+    htmlCurriculum.books.flatMap((book) => book.pages).length,
+    217,
   );
-  assert.ok((await readFile(firstPageImage)).length > 10_000);
+  assert.match(htmlCurriculum.books[5].pages[4].text, /平溪放天燈/);
 });
 
-test("supports continuing, zooming, decluttering, and empty search states", async () => {
+test("supports reflow, source layout, search, progress, and empty states", async () => {
   const [component, css] = await Promise.all([
     readFile(new URL("../app/TaigiApp.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(component, /opentaigi-last-place/);
-  assert.match(component, /page-scrubber/);
-  assert.match(component, /showHotspots/);
+  assert.match(component, /readerView/);
+  assert.match(component, /reading-sheet/);
+  assert.match(component, /layout-sheet/);
+  assert.match(component, /readerQuery/);
+  assert.match(component, /showAudio/);
   assert.match(component, /empty-state/);
-  assert.match(component, /dock-progress/);
-  assert.match(css, /\.mode-strip\s*\{[^}]*position: sticky/s);
-  assert.match(css, /\.reader-page-viewport\.zoomed/);
+  assert.match(component, /audio-dock/);
+  assert.match(component, /pageNumber === 1[\s\S]*activePage\.image/);
+  assert.doesNotMatch(component, /<img[\s\S]{0,120}activeHtmlPage\.text/);
+  assert.match(css, /\.mode-tabs\s*\{[^}]*position: sticky/s);
+  assert.match(css, /\.reading-sheet/);
   assert.match(css, /\.empty-state/);
 });
