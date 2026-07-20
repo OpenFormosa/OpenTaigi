@@ -145,6 +145,7 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(component, /empty-state/);
   assert.match(component, /audio-dock/);
   assert.match(component, /reader-page-controls/);
+  assert.match(component, /reader-command-bar/);
   assert.match(component, /is-listening/);
   assert.match(component, /aria-live="polite"/);
   assert.match(component, /opentaigi-learner-level/);
@@ -168,6 +169,7 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(css, /\.sound-lesson/);
   assert.match(css, /\.inline-block-audio/);
   assert.match(css, /\.reader-page-controls/);
+  assert.match(css, /\.reader-command-bar/);
   assert.match(css, /\.game-console/);
   assert.match(css, /\.quiz-options/);
   assert.match(css, /@keyframes sound-pulse/);

@@ -1240,113 +1240,121 @@ export function TaigiApp() {
               <div className="reader-main">
                 {activeBook && activeHtmlPage && activePage ? (
                   <>
-                    <header className="reader-header">
-                      <div className="reader-title">
-                        <p>
-                          {activeBook.number} / {activeBook.series} / HTML EDITION
-                        </p>
-                        <h2>{activeBook.title}</h2>
-                      </div>
-                      <nav
-                        className="reader-page-controls"
-                        aria-label="教材頁面導覽"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => goToPage(pageNumber - 1)}
-                          disabled={pageNumber === 1}
+                    <div className="reader-command-bar">
+                      <header className="reader-header">
+                        <div className="reader-title">
+                          <p>
+                            {activeBook.number} / {activeBook.series} / HTML EDITION
+                          </p>
+                          <h2>{activeBook.title}</h2>
+                        </div>
+                        <nav
+                          className="reader-page-controls"
+                          aria-label="教材頁面導覽"
                         >
-                          <b aria-hidden="true">←</b>
-                          <span>上一頁</span>
-                        </button>
-                        <div>
-                          <span>本冊位置</span>
-                          <strong>
-                            {pageNumber}
-                            <small> / {activeBook.pageCount}</small>
-                          </strong>
-                          <progress
-                            value={pageNumber}
-                            max={activeBook.pageCount}
-                            aria-label={`目前在第 ${pageNumber} 頁，共 ${activeBook.pageCount} 頁`}
+                          <button
+                            type="button"
+                            onClick={() => goToPage(pageNumber - 1)}
+                            disabled={pageNumber === 1}
+                          >
+                            <b aria-hidden="true">←</b>
+                            <span>上一頁</span>
+                          </button>
+                          <div>
+                            <span>本冊位置</span>
+                            <strong>
+                              {pageNumber}
+                              <small> / {activeBook.pageCount}</small>
+                            </strong>
+                            <progress
+                              value={pageNumber}
+                              max={activeBook.pageCount}
+                              aria-label={`目前在第 ${pageNumber} 頁，共 ${activeBook.pageCount} 頁`}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => goToPage(pageNumber + 1)}
+                            disabled={pageNumber === activeBook.pageCount}
+                          >
+                            <span>下一頁</span>
+                            <b aria-hidden="true">→</b>
+                          </button>
+                        </nav>
+                      </header>
+
+                      <div className="reader-tools" aria-label="閱讀設定">
+                        <div className="view-switch" aria-label="閱讀模式">
+                          <button
+                            className={readerView === "reading" ? "active" : ""}
+                            onClick={() => setReaderView("reading")}
+                          >
+                            教學模式
+                          </button>
+                          <button
+                            className={readerView === "layout" ? "active" : ""}
+                            onClick={() => setReaderView("layout")}
+                          >
+                            原版模式
+                          </button>
+                        </div>
+                        <label className="reader-search">
+                          <span className="sr-only">搜尋這冊</span>
+                          <input
+                            value={readerQuery}
+                            onChange={(event) =>
+                              setReaderQuery(event.target.value)
+                            }
+                            placeholder="搜尋這冊…"
                           />
+                          <b>⌕</b>
+                        </label>
+                        <div className="type-controls" aria-label="文字大小">
+                          <button
+                            onClick={() =>
+                              setFontScale((value) =>
+                                Math.max(0.85, value - 0.1)
+                              )
+                            }
+                            aria-label="縮小文字"
+                          >
+                            A−
+                          </button>
+                          <span>{Math.round(fontScale * 100)}%</span>
+                          <button
+                            onClick={() =>
+                              setFontScale((value) =>
+                                Math.min(1.35, value + 0.1)
+                              )
+                            }
+                            aria-label="放大文字"
+                          >
+                            A+
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => goToPage(pageNumber + 1)}
-                          disabled={pageNumber === activeBook.pageCount}
-                        >
-                          <span>下一頁</span>
-                          <b aria-hidden="true">→</b>
-                        </button>
-                      </nav>
-                    </header>
+                      </div>
 
-                    <div className="reader-tools" aria-label="閱讀設定">
-                      <div className="view-switch" aria-label="閱讀模式">
-                        <button
-                          className={readerView === "reading" ? "active" : ""}
-                          onClick={() => setReaderView("reading")}
-                        >
-                          教學模式
-                        </button>
-                        <button
-                          className={readerView === "layout" ? "active" : ""}
-                          onClick={() => setReaderView("layout")}
-                        >
-                          原版模式
-                        </button>
-                      </div>
-                      <label className="reader-search">
-                        <span className="sr-only">搜尋這冊</span>
-                        <input
-                          value={readerQuery}
-                          onChange={(event) => setReaderQuery(event.target.value)}
-                          placeholder="搜尋這一冊的 HTML 全文…"
-                        />
-                        <b>⌕</b>
-                      </label>
-                      <div className="type-controls" aria-label="文字大小">
-                        <button
-                          onClick={() =>
-                            setFontScale((value) => Math.max(0.85, value - 0.1))
-                          }
-                          aria-label="縮小文字"
-                        >
-                          A−
-                        </button>
-                        <span>{Math.round(fontScale * 100)}%</span>
-                        <button
-                          onClick={() =>
-                            setFontScale((value) => Math.min(1.35, value + 0.1))
-                          }
-                          aria-label="放大文字"
-                        >
-                          A+
-                        </button>
-                      </div>
+                      {readerQuery && (
+                        <div className="search-results">
+                          <span>
+                            「{readerQuery}」找到 {matchingPages.length} 頁
+                          </span>
+                          <div>
+                            {matchingPages.slice(0, 18).map((page) => (
+                              <button
+                                key={page.number}
+                                className={
+                                  page.number === pageNumber ? "active" : ""
+                                }
+                                onClick={() => goToPage(page.number)}
+                              >
+                                p.{page.number}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-
-                    {readerQuery && (
-                      <div className="search-results">
-                        <span>
-                          「{readerQuery}」在本冊找到 {matchingPages.length} 頁
-                        </span>
-                        <div>
-                          {matchingPages.slice(0, 18).map((page) => (
-                            <button
-                              key={page.number}
-                              className={
-                                page.number === pageNumber ? "active" : ""
-                              }
-                              onClick={() => goToPage(page.number)}
-                            >
-                              p.{page.number}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     {readerView === "reading" ? (
                       <article
@@ -1615,7 +1623,7 @@ export function TaigiApp() {
                                               query={readerQuery}
                                             />
                                           </strong>
-                                          <small>點一下，邊看教材邊聽發音</small>
+                                          <small>真人發音</small>
                                         </div>
                                         <span aria-hidden="true">
                                           {String(

@@ -719,11 +719,11 @@ mark {
 }
 
 .learner-context {
-  min-height: 82px;
+  min-height: 64px;
   display: grid;
   grid-template-columns: auto minmax(220px, 1fr) auto;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
   background: var(--surface);
   border-inline: 2px solid var(--line-strong);
   border-bottom: 1px solid var(--line-strong);
@@ -731,7 +731,7 @@ mark {
 }
 
 .learner-context > div {
-  padding-left: 22px;
+  padding-left: 18px;
   display: grid;
 }
 
@@ -745,7 +745,7 @@ mark {
 
 .learner-context > div strong {
   font-family: var(--serif);
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .learner-context > p {
@@ -774,7 +774,7 @@ mark {
 }
 
 .mode-tabs button {
-  min-height: 60px;
+  min-height: 52px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -802,10 +802,10 @@ mark {
 }
 
 .reader-shell {
-  padding-top: 42px;
+  padding-top: 24px;
   display: grid;
-  grid-template-columns: 208px minmax(0, 1fr);
-  gap: 32px;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 18px;
   align-items: start;
 }
 
@@ -820,9 +820,9 @@ mark {
 }
 
 .reader-rail > header {
-  padding: 15px;
+  padding: 10px 12px;
   display: grid;
-  border-bottom: 2px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
 }
 
 .reader-rail > header small {
@@ -834,7 +834,7 @@ mark {
 
 .reader-rail > header strong {
   font-family: var(--serif);
-  font-size: 23px;
+  font-size: 20px;
 }
 
 .rail-books {
@@ -842,8 +842,8 @@ mark {
 }
 
 .rail-books button {
-  min-height: 56px;
-  padding: 8px 12px;
+  min-height: 48px;
+  padding: 6px 10px;
   display: grid;
   grid-template-columns: 48px 1fr auto;
   align-items: center;
@@ -874,7 +874,7 @@ mark {
 }
 
 .rail-progress {
-  padding: 14px;
+  padding: 10px 12px;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: end;
@@ -887,7 +887,7 @@ mark {
 }
 
 .rail-progress > strong {
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .rail-progress > strong small {
@@ -913,14 +913,22 @@ mark {
   min-width: 0;
 }
 
+.reader-command-bar {
+  margin-bottom: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+}
+
 .reader-header {
-  min-height: 96px;
+  min-height: 72px;
+  padding: 10px 12px 8px 14px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  border-bottom: 1px solid var(--line-strong);
+  gap: 16px;
 }
 
 .reader-header p {
@@ -932,14 +940,14 @@ mark {
 }
 
 .reader-header h2 {
-  margin: 0 0 14px;
+  margin: 0;
   font-family: var(--serif);
-  font-size: clamp(30px, 4vw, 40px);
-  line-height: 1.12;
+  font-size: clamp(26px, 3vw, 32px);
+  line-height: 1.08;
 }
 
 .reader-page-controls {
-  min-width: 310px;
+  min-width: 286px;
   display: grid;
   grid-template-columns: auto minmax(112px, 1fr) auto;
   align-items: stretch;
@@ -951,8 +959,8 @@ mark {
 
 .reader-page-controls > button {
   min-width: var(--touch-target);
-  min-height: 58px;
-  padding: 0 12px;
+  min-height: 48px;
+  padding: 0 10px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -978,7 +986,7 @@ mark {
 
 .reader-page-controls > div {
   min-width: 0;
-  padding: 7px 11px 8px;
+  padding: 5px 9px 6px;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: end;
@@ -1005,7 +1013,7 @@ mark {
   grid-column: 1 / -1;
   width: 100%;
   height: 4px;
-  margin-top: 7px;
+  margin-top: 5px;
   overflow: hidden;
   appearance: none;
   border: 0;
@@ -1023,11 +1031,13 @@ mark {
 }
 
 .reader-tools {
-  padding: 14px 0 16px;
+  padding: 8px 10px;
   display: grid;
   grid-template-columns: auto minmax(220px, 1fr) auto;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
+  background: color-mix(in srgb, var(--paper-light) 45%, var(--surface));
+  border-top: 1px solid var(--line);
 }
 
 .view-switch,
@@ -1100,14 +1110,15 @@ mark {
 }
 
 .search-results {
-  margin-bottom: 12px;
-  padding: 10px 12px;
+  margin: 0;
+  padding: 7px 10px;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
   background: color-mix(in srgb, var(--ochre) 12%, var(--surface));
-  border: 1px solid var(--line-strong);
+  border: 0;
+  border-top: 1px solid var(--line);
 }
 
 .search-results > span {
@@ -1143,8 +1154,8 @@ mark {
 }
 
 .reading-sheet > header {
-  min-height: 52px;
-  padding: 10px 20px;
+  min-height: 40px;
+  padding: 7px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1164,23 +1175,23 @@ mark {
 .reading-flow {
   max-width: 780px;
   margin-inline: auto;
-  padding: 48px 56px 64px;
+  padding: 32px 42px 42px;
   font-size: calc(16px * var(--font-scale));
 }
 
 .reading-flow > section + section {
-  margin-top: 32px;
-  padding-top: 32px;
+  margin-top: 20px;
+  padding-top: 20px;
   border-top: 1px solid var(--line);
 }
 
 .sound-lesson {
-  min-height: 84px;
-  margin: 4px 0 12px;
-  padding: 13px 14px;
+  min-height: 62px;
+  margin: 3px 0 6px;
+  padding: 8px 10px;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) auto;
-  gap: 14px;
+  gap: 10px;
   align-items: center;
   background: color-mix(in srgb, var(--green) 4%, var(--surface));
   border: 1px solid var(--line);
@@ -1228,7 +1239,7 @@ mark {
 .sound-lesson strong {
   color: var(--ink);
   font-family: Georgia, "Times New Roman", var(--serif);
-  font-size: calc(31px * var(--font-scale));
+  font-size: calc(27px * var(--font-scale));
   line-height: 1.1;
 }
 
@@ -1247,8 +1258,8 @@ mark {
 }
 
 .integrated-teaching-block.has-audio {
-  margin: 18px 0 24px;
-  padding: 18px;
+  margin: 10px 0 14px;
+  padding: 12px;
   background: color-mix(in srgb, var(--ochre) 7%, var(--surface));
   border: 1px solid var(--line);
   border-left: 5px solid var(--green);
@@ -1260,15 +1271,15 @@ mark {
 }
 
 .inline-block-audio {
-  margin-top: 14px;
+  margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .inline-block-audio button {
-  min-height: 38px;
-  padding: 7px 12px 7px 8px;
+  min-height: 36px;
+  padding: 5px 10px 5px 6px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1306,7 +1317,7 @@ mark {
 
 .reading-flow h3 {
   max-width: 18ch;
-  margin: 0 0 24px;
+  margin: 0 0 16px;
   color: var(--ink);
   font-family: var(--serif);
   font-size: calc(32px * var(--font-scale));
@@ -1316,15 +1327,15 @@ mark {
 
 .reading-flow h3::after {
   width: 58px;
-  height: 5px;
-  margin-top: 14px;
+  height: 3px;
+  margin-top: 8px;
   display: block;
   content: "";
   background: var(--green);
 }
 
 .reading-flow h4 {
-  margin: 30px 0 13px;
+  margin: 20px 0 9px;
   padding-left: 12px;
   color: var(--ink);
   border-left: 6px solid var(--blue);
@@ -1333,21 +1344,21 @@ mark {
 }
 
 .reading-flow p {
-  margin: 0 0 1em;
+  margin: 0 0 0.72em;
   color: var(--prose);
-  line-height: 1.9;
+  line-height: 1.72;
   text-align: left;
   word-break: normal;
   overflow-wrap: anywhere;
 }
 
 .reading-flow aside {
-  margin: 22px 0;
-  padding: 13px 0;
+  margin: 14px 0;
+  padding: 9px 0;
   color: var(--muted);
   border-block: 1px solid var(--ochre);
   font-size: calc(13px * var(--font-scale));
-  line-height: 1.8;
+  line-height: 1.65;
 }
 
 .reading-flow .inline-term {
@@ -1369,10 +1380,10 @@ mark {
 }
 
 .lesson-intro {
-  padding: 28px 32px;
+  padding: 18px 20px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 28px;
+  gap: 16px;
   align-items: end;
   background: color-mix(in srgb, var(--green) 8%, var(--surface));
   border-bottom: 1px solid var(--line);
@@ -1390,9 +1401,9 @@ mark {
 }
 
 .lesson-intro h3 {
-  margin: 5px 0 7px;
+  margin: 3px 0 4px;
   font-family: var(--serif);
-  font-size: calc(34px * var(--font-scale));
+  font-size: calc(29px * var(--font-scale));
   line-height: 1.2;
 }
 
@@ -1432,24 +1443,35 @@ mark {
 }
 
 .lesson-word-list {
-  padding: 16px 18px 28px;
-}
-
-.lesson-word-list article {
-  min-height: 118px;
-  margin-bottom: 10px;
-  padding: 12px 14px;
-  display: grid;
-  grid-template-columns: 44px 52px minmax(125px, 0.7fr) minmax(220px, 1.3fr) 88px;
-  gap: 12px;
-  align-items: center;
+  margin: 10px 14px 18px;
+  padding: 0;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
+}
+
+.lesson-word-list article {
+  min-height: 98px;
+  margin: 0;
+  padding: 9px 12px;
+  display: grid;
+  grid-template-columns: 44px 52px minmax(125px, 0.7fr) minmax(220px, 1.3fr) 88px;
+  gap: 10px;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
   transition:
     background 160ms ease,
     border-color 160ms ease,
     box-shadow 160ms ease;
+}
+
+.lesson-word-list article:last-child,
+.lesson-sentence-list article:last-child {
+  border-bottom: 0;
 }
 
 .lesson-word-list article.is-listening,
@@ -1556,20 +1578,26 @@ mark {
 }
 
 .lesson-sentence-list {
-  padding: 16px 18px 28px;
-}
-
-.lesson-sentence-list article {
-  min-height: 112px;
-  margin-bottom: 10px;
-  padding: 12px 14px;
-  display: grid;
-  grid-template-columns: 36px 52px minmax(220px, 1fr) minmax(150px, 0.6fr);
-  gap: 13px;
-  align-items: center;
+  margin: 10px 14px 18px;
+  padding: 0;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
+}
+
+.lesson-sentence-list article {
+  min-height: 94px;
+  margin: 0;
+  padding: 9px 12px;
+  display: grid;
+  grid-template-columns: 36px 52px minmax(220px, 1fr) minmax(150px, 0.6fr);
+  gap: 10px;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
 }
 
 .lesson-sentence-list article > span {
@@ -1899,8 +1927,8 @@ mark {
 }
 
 .reader-options {
-  margin-top: 20px;
-  padding-block: 12px;
+  margin-top: 12px;
+  padding-block: 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -1927,7 +1955,7 @@ mark {
 }
 
 .page-audio-list {
-  margin-top: 15px;
+  margin-top: 10px;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--line-strong);
@@ -1997,7 +2025,7 @@ mark {
 }
 
 .page-nav {
-  margin-top: 20px;
+  margin-top: 12px;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   gap: 10px;
@@ -2005,7 +2033,7 @@ mark {
 
 .page-nav > button,
 .page-nav label {
-  min-height: 48px;
+  min-height: 44px;
   padding: 0 15px;
   display: flex;
   align-items: center;
@@ -3252,15 +3280,14 @@ mark {
   }
 
   .learner-context {
+    min-height: 56px;
     grid-template-columns: 1fr auto;
-    gap: 10px 18px;
-    padding-block: 13px;
+    gap: 8px;
+    padding-block: 8px;
   }
 
   .learner-context > p {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    padding: 0 18px 0 22px;
+    display: none;
   }
 
   .learner-context > a {
@@ -3338,35 +3365,35 @@ mark {
 
   .reader-shell {
     width: 100%;
-    padding-top: 18px;
-    gap: 18px;
+    padding-top: 10px;
+    gap: 8px;
   }
 
   .reader-rail,
   .reader-main {
-    width: min(100% - 22px, var(--max));
+    width: min(100% - 16px, var(--max));
     margin-inline: auto;
   }
 
   .reader-header {
     grid-template-columns: 1fr;
-    gap: 6px;
+    gap: 4px;
     align-items: start;
     border-bottom: 0;
   }
 
   .reader-header h2 {
-    font-size: 29px;
+    font-size: 26px;
   }
 
   .reader-page-controls {
     width: 100%;
     min-width: 0;
-    margin-bottom: 8px;
+    margin-bottom: 0;
   }
 
   .reader-page-controls > button {
-    min-height: 56px;
+    min-height: 44px;
   }
 
   .reader-page-controls > button span {
@@ -3374,11 +3401,13 @@ mark {
   }
 
   .reader-tools {
-    grid-template-columns: 1fr auto;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
   }
 
   .view-switch {
-    grid-column: 1 / -1;
+    flex: 0 0 auto;
   }
 
   .view-switch button {
@@ -3386,7 +3415,12 @@ mark {
   }
 
   .reader-search {
-    min-width: 0;
+    min-width: 150px;
+    flex: 1 0 150px;
+  }
+
+  .type-controls {
+    flex: 0 0 auto;
   }
 
   .search-results {
@@ -3394,7 +3428,7 @@ mark {
   }
 
   .reading-flow {
-    padding: 32px 20px 44px;
+    padding: 24px 16px 32px;
   }
 
   .reading-flow h3 {
@@ -3402,9 +3436,9 @@ mark {
   }
 
   .sound-lesson {
-    padding-inline: 11px;
+    padding: 7px 8px;
     grid-template-columns: 44px minmax(0, 1fr) auto;
-    gap: 11px;
+    gap: 8px;
   }
 
   .sound-lesson > button {
@@ -3417,13 +3451,13 @@ mark {
   }
 
   .integrated-teaching-block.has-audio {
-    padding: 15px;
+    padding: 10px;
   }
 
   .lesson-intro {
-    padding: 22px 18px;
+    padding: 14px;
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: 10px;
   }
 
   .lesson-intro ol {
@@ -3437,11 +3471,12 @@ mark {
 
   .lesson-word-list,
   .lesson-sentence-list {
-    padding: 12px 10px 22px;
+    margin: 8px;
+    padding: 0;
   }
 
   .lesson-word-list article {
-    padding: 14px 12px;
+    padding: 10px;
     grid-template-columns: 48px minmax(0, 1fr);
     gap: 10px;
   }
@@ -3471,7 +3506,7 @@ mark {
   }
 
   .lesson-sentence-list article {
-    padding: 14px 12px;
+    padding: 10px;
     grid-template-columns: 48px minmax(0, 1fr);
     gap: 10px;
   }
@@ -3695,12 +3730,12 @@ mark {
   }
 
   .reader-tools {
-    grid-template-columns: 1fr;
+    display: flex;
   }
 
   .type-controls {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    justify-content: flex-start;
   }
 
   .database-tools,
