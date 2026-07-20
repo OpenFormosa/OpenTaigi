@@ -42,3 +42,8 @@ next-env.d.ts
 /outputs/
 /work/
 /tmp/
+
+# Required by vite.config.ts for source-based Sites deployments.
+!/build/
+/build/*
+!/build/sites-vite-plugin.ts
