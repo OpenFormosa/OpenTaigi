@@ -146,6 +146,11 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(component, /audio-dock/);
   assert.match(component, /reader-page-controls/);
   assert.match(component, /reader-command-bar/);
+  assert.match(component, /lesson-session-strip/);
+  assert.match(component, /reader-focus-toggle/);
+  assert.match(component, /lesson-finish/);
+  assert.match(component, /aria-pressed=\{focusMode\}/);
+  assert.match(component, /完成本頁/);
   assert.match(component, /is-listening/);
   assert.match(component, /aria-live="polite"/);
   assert.match(component, /opentaigi-learner-level/);
@@ -170,6 +175,9 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(css, /\.inline-block-audio/);
   assert.match(css, /\.reader-page-controls/);
   assert.match(css, /\.reader-command-bar/);
+  assert.match(css, /\.reader-shell\.focus-mode/);
+  assert.match(css, /\.lesson-session-strip/);
+  assert.match(css, /\.lesson-finish/);
   assert.match(css, /\.game-console/);
   assert.match(css, /\.quiz-options/);
   assert.match(css, /@keyframes sound-pulse/);
@@ -188,4 +196,7 @@ test("documents the shared design-system and mobile learning rules", async () =>
   assert.match(designSystem, /default/);
   assert.match(designSystem, /focus-visible/);
   assert.match(designSystem, /active／playing/);
+  assert.match(designSystem, /閱讀工作階段/);
+  assert.match(designSystem, /W3C Reflow/);
+  assert.match(designSystem, /Khan Academy Course and Unit Mastery/);
 });

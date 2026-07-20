@@ -161,6 +161,13 @@ type LastPlace = {
   page: number;
 };
 
+type PageGuide = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  steps: [string, string, string];
+};
+
 const SOURCE_ROOT =
   "https://github.com/Taiwanese-Corpus/Lan-Lai-Oh-Taigi";
 const OPENFORMOSA_ROOT = "https://openformosa.com";
@@ -489,6 +496,52 @@ function normalizeTeachingText(value: string) {
     .toLocaleLowerCase();
 }
 
+function guideForPage(
+  book: Book,
+  pageNumber: number,
+  vocabularyCount: number,
+  sentenceCount: number,
+): PageGuide {
+  if (vocabularyCount > 0) {
+    return {
+      eyebrow: `第 ${pageNumber} 頁任務`,
+      title: `學會 ${vocabularyCount} 个生活語詞`,
+      description: "按原位播放鍵聽詞頭，再看台羅、華語和完整例詞。",
+      steps: ["聽詞頭", "看詞義", "聽例詞"],
+    };
+  }
+  if (sentenceCount > 0) {
+    return {
+      eyebrow: `第 ${pageNumber} 頁任務`,
+      title: `聽懂 ${sentenceCount} 句生活台語`,
+      description: "先只聽語氣，跟著講一擺，最後才揭開華語提示。",
+      steps: ["先聽", "跟講", "揭提示"],
+    };
+  }
+  if (book.id === "pronunciation") {
+    return {
+      eyebrow: `第 ${pageNumber} 頁任務`,
+      title: "聽清楚，閣跟講一擺",
+      description: "發音符號和錄音放在同一段；先聽，再對照口形說明。",
+      steps: ["按鍵聽", "看口形", "跟讀"],
+    };
+  }
+  if (book.series === "文章") {
+    return {
+      eyebrow: `第 ${pageNumber} 頁任務`,
+      title: "讀一段，理解一段",
+      description: "先看標題抓主題，再依段落讀；遇到藍色播放鍵就原位聽。",
+      steps: ["抓主題", "逐段讀", "完成本頁"],
+    };
+  }
+  return {
+    eyebrow: `第 ${pageNumber} 頁任務`,
+    title: "照教材順序讀完這一頁",
+    description: "標題、說明和真人發音已排成同一條閱讀動線。",
+    steps: ["先預覽", "讀內容", "完成本頁"],
+  };
+}
+
 function audioForBlock(
   page: HtmlPage,
   side: "left" | "right",
@@ -532,6 +585,7 @@ export function TaigiApp() {
   const [readerQuery, setReaderQuery] = useState("");
   const [fontScale, setFontScale] = useState(1);
   const [showAudio, setShowAudio] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
   const [lastPlace, setLastPlace] = useState<LastPlace | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(() =>
     typeof window === "undefined"
@@ -974,6 +1028,18 @@ export function TaigiApp() {
   const completeCount = activeBook
     ? [...completed].filter((key) => key.startsWith(`${activeBook.id}-`)).length
     : 0;
+  const pageGuide = activeBook
+    ? guideForPage(
+        activeBook,
+        pageNumber,
+        pageVocabulary.length,
+        sentencePageGroups.reduce(
+          (count, group) => count + group.sentences.length,
+          0,
+        ),
+      )
+    : null;
+  const pageIsComplete = completed.has(pageKey);
 
   return (
     <div className="site-shell" id="top">
@@ -1198,7 +1264,11 @@ export function TaigiApp() {
           </div>
 
           {mode === "reader" && (
-            <div className="reader-shell section-pad">
+            <div
+              className={`reader-shell section-pad ${
+                focusMode ? "focus-mode" : ""
+              }`}
+            >
               <aside className="reader-rail">
                 <header>
                   <small>HTML TEXTBOOK</small>
@@ -1332,6 +1402,22 @@ export function TaigiApp() {
                             A+
                           </button>
                         </div>
+                        <button
+                          type="button"
+                          className={`reader-focus-toggle ${
+                            focusMode ? "active" : ""
+                          }`}
+                          aria-pressed={focusMode}
+                          onClick={() => {
+                            setFocusMode((value) => !value);
+                            setReaderView("reading");
+                          }}
+                        >
+                          <span aria-hidden="true">
+                            {focusMode ? "×" : "◎"}
+                          </span>
+                          {focusMode ? "離開專注" : "專注閱讀"}
+                        </button>
                       </div>
 
                       {readerQuery && (
@@ -1356,6 +1442,44 @@ export function TaigiApp() {
                       )}
                     </div>
 
+                    {readerView === "reading" && pageGuide && (
+                      <section
+                        className="lesson-session-strip"
+                        aria-labelledby="page-learning-goal"
+                      >
+                        <div className="session-goal">
+                          <span>{pageGuide.eyebrow}</span>
+                          <strong id="page-learning-goal">
+                            {pageGuide.title}
+                          </strong>
+                          <p>{pageGuide.description}</p>
+                        </div>
+                        <ol aria-label="這頁的學習順序">
+                          {pageGuide.steps.map((step, index) => (
+                            <li key={step}>
+                              <b>{index + 1}</b>
+                              {step}
+                            </li>
+                          ))}
+                        </ol>
+                        <div
+                          className="session-progress"
+                          aria-label={`本冊已完成 ${completeCount} 頁，共 ${activeBook.pageCount} 頁`}
+                        >
+                          <span>本冊進度</span>
+                          <strong>
+                            {completeCount}
+                            <small> / {activeBook.pageCount}</small>
+                          </strong>
+                          <progress
+                            value={completeCount}
+                            max={activeBook.pageCount}
+                            aria-label={`本冊已完成 ${completeCount} 頁，共 ${activeBook.pageCount} 頁`}
+                          />
+                        </div>
+                      </section>
+                    )}
+
                     {readerView === "reading" ? (
                       <article
                         className="reading-sheet"
@@ -1368,7 +1492,7 @@ export function TaigiApp() {
                               ` · ${activePage.hotspots.length} 段真人發音`}
                           </span>
                           <strong>
-                            {completed.has(pageKey) ? "✓ 本頁已完成" : "本頁學習中"}
+                            {pageIsComplete ? "✓ 本頁已完成" : "本頁學習中"}
                           </strong>
                         </header>
                         {pageVocabulary.length > 0 ? (
@@ -1814,29 +1938,6 @@ export function TaigiApp() {
                       </div>
                     )}
 
-                    <div className="reader-options">
-                      <button
-                        className={showAudio ? "active" : ""}
-                        aria-pressed={showAudio}
-                        onClick={() => setShowAudio((value) => !value)}
-                      >
-                        {showAudio ? "● 發音位置已顯示" : "○ 顯示發音位置"}
-                      </button>
-                      <button
-                        className={completed.has(pageKey) ? "active" : ""}
-                        onClick={toggleCompleted}
-                      >
-                        {completed.has(pageKey) ? "✓ 本頁讀過矣" : "標記本頁讀完"}
-                      </button>
-                      <a
-                        href={activeBook.sourcePdf}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        核對原始 PDF ↗
-                      </a>
-                    </div>
-
                     {activePage.hotspots.length > 0 && (
                       <details className="page-audio-list">
                         <summary>
@@ -1867,48 +1968,70 @@ export function TaigiApp() {
                       </details>
                     )}
 
-                    <div className="page-nav">
-                      <button
-                        onClick={() => goToPage(pageNumber - 1)}
-                        disabled={pageNumber === 1}
-                      >
-                        ← 上一頁
-                      </button>
-                      <label>
-                        <span>PAGE</span>
-                        <select
-                          value={pageNumber}
-                          onChange={(event) =>
-                            goToPage(Number(event.target.value))
-                          }
+                    <section
+                      className={`lesson-finish ${
+                        pageIsComplete ? "is-complete" : ""
+                      }`}
+                      aria-labelledby="lesson-finish-title"
+                    >
+                      <div className="lesson-finish-copy">
+                        <span>
+                          {pageIsComplete ? "本頁完成" : "讀到這裡"}
+                        </span>
+                        <strong id="lesson-finish-title">
+                          {pageIsComplete
+                            ? "足𠢕！這頁已經收進進度"
+                            : "聽過、讀過，就完成這一頁"}
+                        </strong>
+                        <p>
+                          {pageIsComplete
+                            ? `本冊已完成 ${completeCount}／${activeBook.pageCount} 頁，可以繼續下一頁。`
+                            : "標記完成會保留在這台裝置，轉來猶原看會著。"}
+                        </p>
+                      </div>
+                      <div className="lesson-finish-actions">
+                        <button
+                          type="button"
+                          className="finish-back"
+                          onClick={() => goToPage(pageNumber - 1)}
+                          disabled={pageNumber === 1}
                         >
-                          {activeBook.pages.map((page) => (
-                            <option value={page.number} key={page.number}>
-                              {page.number} / {activeBook.pageCount}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <button
-                        onClick={() => goToPage(pageNumber + 1)}
-                        disabled={pageNumber === activeBook.pageCount}
-                      >
-                        下一頁 →
-                      </button>
-                    </div>
-                    <label className="page-range">
-                      <span>1</span>
-                      <input
-                        type="range"
-                        min="1"
-                        max={activeBook.pageCount}
-                        value={pageNumber}
-                        onChange={(event) =>
-                          goToPage(Number(event.target.value))
-                        }
-                      />
-                      <span>{activeBook.pageCount}</span>
-                    </label>
+                          ← 上一頁
+                        </button>
+                        <button
+                          type="button"
+                          className="finish-complete"
+                          aria-pressed={pageIsComplete}
+                          onClick={toggleCompleted}
+                        >
+                          {pageIsComplete ? "✓ 已讀完" : "完成本頁"}
+                        </button>
+                        <button
+                          type="button"
+                          className="finish-next"
+                          onClick={() => goToPage(pageNumber + 1)}
+                          disabled={pageNumber === activeBook.pageCount}
+                        >
+                          下一頁 →
+                        </button>
+                      </div>
+                      <div className="lesson-secondary-actions">
+                        <button
+                          className={showAudio ? "active" : ""}
+                          aria-pressed={showAudio}
+                          onClick={() => setShowAudio((value) => !value)}
+                        >
+                          {showAudio ? "● 發音位置已顯示" : "○ 顯示發音位置"}
+                        </button>
+                        <a
+                          href={activeBook.sourcePdf}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          核對原始 PDF ↗
+                        </a>
+                      </div>
+                    </section>
                   </>
                 ) : (
                   <div className="loading-panel">
