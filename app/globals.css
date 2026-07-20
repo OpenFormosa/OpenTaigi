@@ -1536,6 +1536,321 @@ mark {
   font-weight: 800;
 }
 
+.pronunciation-reference-page {
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+  background: var(--paper-light);
+  font-size: calc(16px * var(--font-scale));
+}
+
+.reference-module {
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+}
+
+.reference-heading {
+  min-height: 82px;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  background: color-mix(in srgb, var(--green) 7%, var(--surface));
+  border-bottom: 1px solid var(--line);
+}
+
+.reference-heading > span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: var(--inverse);
+  background: var(--green);
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.reference-heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.reference-heading small {
+  color: var(--green);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.reference-heading h3 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: calc(24px * var(--font-scale));
+  line-height: 1.25;
+}
+
+.reference-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: calc(11px * var(--font-scale));
+  line-height: 1.5;
+}
+
+.vowel-reference-layout {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: minmax(300px, 1.15fr) minmax(230px, 0.85fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.vowel-table {
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+}
+
+.vowel-table-head,
+.vowel-row {
+  display: grid;
+  grid-template-columns: 70px minmax(120px, 1fr) minmax(100px, 0.8fr);
+  align-items: center;
+}
+
+.vowel-table-head {
+  min-height: 34px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--blue) 8%, var(--surface));
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.vowel-table-head > span,
+.vowel-row > span,
+.vowel-row > strong {
+  min-width: 0;
+  padding-inline: 10px;
+}
+
+.vowel-table-head > * + *,
+.vowel-row > * + * {
+  border-left: 1px solid var(--line);
+}
+
+.vowel-row {
+  min-height: 54px;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.vowel-row + .vowel-row {
+  border-top: 1px solid var(--line);
+}
+
+.vowel-row.is-listening {
+  background: color-mix(in srgb, var(--green) 10%, var(--surface));
+  box-shadow: inset 5px 0 0 var(--green);
+}
+
+.vowel-row > span:first-child {
+  display: grid;
+  place-items: center;
+}
+
+.vowel-row button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: var(--inverse);
+  background: var(--red);
+  border: 0;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.vowel-row > strong {
+  color: var(--green);
+  font-family: Georgia, "Times New Roman", var(--serif);
+  font-size: calc(23px * var(--font-scale));
+}
+
+.vowel-row > span:last-child {
+  font-size: calc(19px * var(--font-scale));
+}
+
+.vowel-family-groups {
+  display: grid;
+  gap: 8px;
+}
+
+.vowel-family-groups article {
+  min-height: 72px;
+  padding: 11px 13px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  background: color-mix(in srgb, var(--ochre) 8%, var(--surface));
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--ochre);
+  border-radius: var(--radius-sm);
+}
+
+.vowel-family-groups small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.vowel-family-groups strong {
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", var(--serif);
+  font-size: calc(19px * var(--font-scale));
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.reference-note,
+.tone-note {
+  margin: 0 12px 12px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 10px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: calc(11px * var(--font-scale));
+  line-height: 1.55;
+}
+
+.reference-note b,
+.tone-note b {
+  flex: 0 0 auto;
+  color: var(--green);
+}
+
+.reference-note p {
+  margin: 0;
+}
+
+.tone-learning-grid {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tone-card {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.tone-card.is-listening {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 20%, transparent);
+}
+
+.tone-card > header {
+  min-height: 34px;
+  padding: 6px 9px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--blue) 8%, var(--surface));
+  border-bottom: 1px solid var(--line);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.tone-card > header strong {
+  color: var(--green);
+  font-size: 12px;
+}
+
+.tone-card-body {
+  min-height: 106px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 74px;
+}
+
+.tone-card-body > div {
+  min-width: 0;
+  padding: 10px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+.tone-card-body > div b {
+  font-family: Georgia, "Times New Roman", var(--serif);
+  font-size: calc(22px * var(--font-scale));
+  line-height: 1.1;
+}
+
+.tone-card-body > div small {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.tone-card-body > button {
+  min-width: 0;
+  padding: 8px 5px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--green) 6%, var(--surface));
+  border: 0;
+  border-left: 1px solid var(--line);
+}
+
+.tone-card-body > button > span {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  color: var(--inverse);
+  background: var(--red);
+  border-radius: 50%;
+  font-size: 7px;
+}
+
+.tone-card-body > button > strong {
+  font-family: var(--serif);
+  font-size: calc(21px * var(--font-scale));
+  line-height: 1.1;
+}
+
+.tone-card-body > button > small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.tone-card.is-listening .tone-card-body > button {
+  background: color-mix(in srgb, var(--green) 14%, var(--surface));
+}
+
 .lesson-page {
   background: var(--paper-light);
 }
@@ -3629,6 +3944,96 @@ mark {
 
   .reading-flow h3 {
     font-size: calc(28px * var(--font-scale));
+  }
+
+  .pronunciation-reference-page {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .reference-heading {
+    min-height: 0;
+    padding: 11px;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .reference-heading > span {
+    width: 34px;
+    height: 34px;
+  }
+
+  .reference-heading h3 {
+    font-size: calc(20px * var(--font-scale));
+  }
+
+  .vowel-reference-layout {
+    padding: 8px;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .vowel-table-head,
+  .vowel-row {
+    grid-template-columns: 50px minmax(0, 1fr) 78px;
+  }
+
+  .vowel-table-head > span,
+  .vowel-row > span,
+  .vowel-row > strong {
+    padding-inline: 7px;
+  }
+
+  .vowel-family-groups {
+    grid-template-columns: 1fr;
+  }
+
+  .vowel-family-groups article {
+    min-height: 58px;
+    padding: 9px 10px;
+  }
+
+  .reference-note,
+  .tone-note {
+    margin: 0 8px 8px;
+    padding: 9px 10px;
+    display: grid;
+    gap: 3px;
+  }
+
+  .tone-learning-grid {
+    padding: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .tone-card-body {
+    min-height: 0;
+    grid-template-columns: 1fr;
+  }
+
+  .tone-card-body > div {
+    min-height: 70px;
+    padding: 8px;
+  }
+
+  .tone-card-body > button {
+    min-height: 72px;
+    grid-template-columns: 27px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 7px;
+    text-align: left;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .tone-card-body > button > span {
+    grid-row: 1 / 3;
+  }
+
+  .tone-card-body > button > strong,
+  .tone-card-body > button > small {
+    justify-self: start;
   }
 
   .lesson-session-strip {

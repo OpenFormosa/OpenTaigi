@@ -569,6 +569,231 @@ function audioForBlock(
   });
 }
 
+const basicVowels = [
+  { lomaji: "a", bopomofo: "ㄚ" },
+  { lomaji: "i", bopomofo: "ㄧ" },
+  { lomaji: "u", bopomofo: "ㄨ" },
+  { lomaji: "e", bopomofo: "ㄝ" },
+  { lomaji: "o", bopomofo: "ㄜ" },
+  { lomaji: "oo", bopomofo: "ㄛ" },
+];
+
+const toneLessons = [
+  {
+    number: 1,
+    value: "高平",
+    cue: "高音保持平穩",
+    mark: "tong",
+    example: "東",
+  },
+  {
+    number: 2,
+    value: "高降",
+    cue: "由高往下降",
+    mark: "tóng",
+    example: "黨",
+  },
+  {
+    number: 3,
+    value: "低降",
+    cue: "低音再往下降",
+    mark: "tòng",
+    example: "棟",
+  },
+  {
+    number: 4,
+    value: "中入",
+    cue: "短促收尾",
+    mark: "tok",
+    example: "督",
+  },
+  {
+    number: 5,
+    value: "低升",
+    cue: "由低往上升",
+    mark: "tông",
+    example: "同",
+  },
+  {
+    number: 6,
+    value: "同第2調",
+    cue: "學習時用第2調代替",
+    mark: "tóng",
+    example: "黨（動）",
+  },
+  {
+    number: 7,
+    value: "中平",
+    cue: "中音保持平穩",
+    mark: "tōng",
+    example: "洞",
+  },
+  {
+    number: 8,
+    value: "高入",
+    cue: "高音短促收尾",
+    mark: "to̍k",
+    example: "毒",
+  },
+];
+
+function PronunciationReferencePage({
+  page,
+  activeAudio,
+  isPlaying,
+  query,
+  onPlay,
+}: {
+  page: BookPage;
+  activeAudio: { url: string; label: string } | null;
+  isPlaying: boolean;
+  query: string;
+  onPlay: (url: string, label: string) => void;
+}) {
+  return (
+    <div className="pronunciation-reference-page">
+      <section className="reference-module vowel-reference">
+        <header className="reference-heading">
+          <span>02</span>
+          <div>
+            <small>先建立拼音對照</small>
+            <h3>臺灣閩南語基本韻母符號</h3>
+            <p>按播放鍵聽六个基本韻母；注音只提供發音方向的對照。</p>
+          </div>
+        </header>
+
+        <div className="vowel-reference-layout">
+          <div className="vowel-table" role="table" aria-label="基本韻母符號">
+            <div className="vowel-table-head" role="row">
+              <span role="columnheader">聽音</span>
+              <span role="columnheader">台羅拼音</span>
+              <span role="columnheader">注音對照</span>
+            </div>
+            {basicVowels.map((vowel, index) => {
+              const hotspot = page.hotspots[index];
+              const isActive =
+                Boolean(hotspot) && activeAudio?.url === hotspot.audio;
+              return (
+                <div
+                  className={`vowel-row ${isActive ? "is-listening" : ""}`}
+                  role="row"
+                  key={vowel.lomaji}
+                >
+                  <span role="cell">
+                    <button
+                      type="button"
+                      disabled={!hotspot?.available}
+                      aria-label={`${isActive && isPlaying ? "暫停" : "播放"}韻母 ${vowel.lomaji}`}
+                      aria-pressed={isActive && isPlaying}
+                      onClick={() =>
+                        hotspot &&
+                        onPlay(hotspot.audio, `韻母 ${vowel.lomaji}`)
+                      }
+                    >
+                      {isActive && isPlaying ? "Ⅱ" : "▶"}
+                    </button>
+                  </span>
+                  <strong role="cell">
+                    <Highlight text={vowel.lomaji} query={query} />
+                  </strong>
+                  <span role="cell">{vowel.bopomofo}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="vowel-family-groups">
+            <article>
+              <small>鼻化韻母</small>
+              <strong>-nn</strong>
+            </article>
+            <article>
+              <small>韻母成音節</small>
+              <strong>m／-m　-n　ng／-ng</strong>
+            </article>
+            <article>
+              <small>入聲韻尾</small>
+              <strong>-p　-t　-k　-h</strong>
+            </article>
+          </div>
+        </div>
+
+        <aside className="reference-note">
+          <b>注音對照提醒</b>
+          <p>
+            國語和臺灣閩南語的語音無完全相同；這組注音只用來幫助揣摩，
+            空白就代表無直接對應符號。
+          </p>
+        </aside>
+      </section>
+
+      <section className="reference-module tone-reference">
+        <header className="reference-heading">
+          <span>03</span>
+          <div>
+            <small>用例字聽出八个聲調</small>
+            <h3>臺灣閩南語基本聲調</h3>
+            <p>每格把調序、調值、調符和真人例字放在一起，依序聽一輪。</p>
+          </div>
+        </header>
+
+        <div className="tone-learning-grid">
+          {toneLessons.map((tone, index) => {
+            const hotspot = page.hotspots[index + 6];
+            const isActive =
+              Boolean(hotspot) && activeAudio?.url === hotspot.audio;
+            return (
+              <article
+                className={`tone-card ${isActive ? "is-listening" : ""}`}
+                key={tone.number}
+              >
+                <header>
+                  <span>第 {tone.number} 調</span>
+                  <strong>{tone.value}</strong>
+                </header>
+                <div className="tone-card-body">
+                  <div>
+                    <b>
+                      <Highlight text={tone.mark} query={query} />
+                    </b>
+                    <small>{tone.cue}</small>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!hotspot?.available}
+                    aria-label={`${isActive && isPlaying ? "暫停" : "播放"}第 ${tone.number} 調例字 ${tone.example}`}
+                    aria-pressed={isActive && isPlaying}
+                    onClick={() =>
+                      hotspot &&
+                      onPlay(
+                        hotspot.audio,
+                        `第 ${tone.number} 調・${tone.example}`,
+                      )
+                    }
+                  >
+                    <span aria-hidden="true">
+                      {isActive && isPlaying ? "Ⅱ" : "▶"}
+                    </span>
+                    <strong>
+                      <Highlight text={tone.example} query={query} />
+                    </strong>
+                    <small>真人例字</small>
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <aside className="tone-note">
+          <b>第 6 調</b>
+          學習時以第 2 調代替；網頁仍保留原教材的調序和例字。
+        </aside>
+      </section>
+    </div>
+  );
+}
+
 export function TaigiApp() {
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
   const [htmlCurriculum, setHtmlCurriculum] =
@@ -1495,7 +1720,16 @@ export function TaigiApp() {
                             {pageIsComplete ? "✓ 本頁已完成" : "本頁學習中"}
                           </strong>
                         </header>
-                        {pageVocabulary.length > 0 ? (
+                        {activeBookId === "pronunciation" &&
+                        pageNumber === 4 ? (
+                          <PronunciationReferencePage
+                            page={activePage}
+                            activeAudio={activeAudio}
+                            isPlaying={isPlaying}
+                            query={readerQuery}
+                            onPlay={playAudio}
+                          />
+                        ) : pageVocabulary.length > 0 ? (
                           <div className="lesson-page vocabulary-lesson">
                             <header className="lesson-intro">
                               <div>

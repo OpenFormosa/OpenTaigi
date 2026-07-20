@@ -109,6 +109,10 @@ test("ships every PDF page as HTML text plus its audio map", async () => {
       .flatMap((page) => page.hotspots)
       .every((hotspot) => hotspot.x >= 0 && hotspot.y >= 0),
   );
+  const pronunciationReference = curriculum.books
+    .find((book) => book.id === "pronunciation")
+    .pages.find((page) => page.number === 4);
+  assert.equal(pronunciationReference.hotspots.length, 14);
 
   assert.equal(htmlCurriculum.format, "html-text-layout-v1");
   assert.equal(htmlCurriculum.books.length, 8);
@@ -121,6 +125,10 @@ test("ships every PDF page as HTML text plus its audio map", async () => {
     217,
   );
   assert.match(htmlCurriculum.books[5].pages[4].text, /平溪放天燈/);
+  assert.match(
+    htmlCurriculum.books[0].pages[3].text,
+    /臺灣閩南語基本聲調排序與標記位置/,
+  );
 });
 
 test("supports reflow, source layout, search, progress, and empty states", async () => {
@@ -149,6 +157,10 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(component, /lesson-session-strip/);
   assert.match(component, /reader-focus-toggle/);
   assert.match(component, /lesson-finish/);
+  assert.match(component, /PronunciationReferencePage/);
+  assert.match(component, /toneLessons/);
+  assert.match(component, /vowel-table/);
+  assert.match(component, /tone-learning-grid/);
   assert.match(component, /aria-pressed=\{focusMode\}/);
   assert.match(component, /完成本頁/);
   assert.match(component, /is-listening/);
@@ -178,6 +190,10 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(css, /\.reader-shell\.focus-mode/);
   assert.match(css, /\.lesson-session-strip/);
   assert.match(css, /\.lesson-finish/);
+  assert.match(css, /\.pronunciation-reference-page/);
+  assert.match(css, /\.vowel-reference-layout/);
+  assert.match(css, /\.tone-learning-grid/);
+  assert.match(css, /\.tone-card\.is-listening/);
   assert.match(css, /\.game-console/);
   assert.match(css, /\.quiz-options/);
   assert.match(css, /@keyframes sound-pulse/);
