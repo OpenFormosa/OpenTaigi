@@ -483,6 +483,39 @@ function closestLine(page: HtmlPage | null, hotspot: Hotspot) {
   return text.length > 38 ? `${text.slice(0, 38)}…` : text;
 }
 
+function normalizeTeachingText(value: string) {
+  return value
+    .replace(/[▲◆◇*＊\s、，。．：:；;（）()「」『』【】]/g, "")
+    .toLocaleLowerCase();
+}
+
+function audioForBlock(
+  page: HtmlPage,
+  side: "left" | "right",
+  block: HtmlBlock,
+  hotspots: Hotspot[],
+) {
+  const blockText = normalizeTeachingText(block.text);
+  if (!blockText) return [];
+  return hotspots.filter((hotspot) => {
+    const hotspotSide = hotspot.x < 50 ? "left" : "right";
+    if (hotspotSide !== side || Math.abs(hotspot.y - block.y) > 5.5) {
+      return false;
+    }
+    const audioText = normalizeTeachingText(closestLine(page, hotspot));
+    if (!audioText) return false;
+    if (audioText === blockText) return true;
+    if (
+      (block.role !== "title" && block.role !== "heading") ||
+      blockText.length <= 3 ||
+      audioText.length <= 1
+    ) {
+      return false;
+    }
+    return blockText.includes(audioText) || audioText.includes(blockText);
+  });
+}
+
 export function TaigiApp() {
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
   const [htmlCurriculum, setHtmlCurriculum] =
@@ -1465,55 +1498,128 @@ export function TaigiApp() {
                           </div>
                         ) : activeHtmlPage.text ? (
                           <div className="reading-flow">
-                            {activePage.hotspots.length > 0 && (
-                              <div className="lesson-audio-strip">
-                                <header>
-                                  <span>先聽這一頁</span>
-                                  <small>
-                                    {activePage.hotspots.length} 段真人發音
-                                  </small>
-                                </header>
-                                <div>
-                                  {activePage.hotspots
-                                    .slice(0, 8)
-                                    .map((hotspot, index) => (
-                                      <button
-                                        key={hotspot.id}
-                                        onClick={() =>
-                                          playAudio(
-                                            hotspot.audio,
-                                            closestLine(
-                                              activeHtmlPage,
-                                              hotspot,
-                                            ),
-                                          )
-                                        }
-                                        disabled={!hotspot.available}
-                                      >
-                                        <b>▶</b>
-                                        <span>
-                                          {closestLine(
-                                            activeHtmlPage,
-                                            hotspot,
-                                          )}
-                                        </span>
-                                        <small>
-                                          {String(index + 1).padStart(2, "0")}
-                                        </small>
-                                      </button>
-                                    ))}
-                                </div>
-                              </div>
-                            )}
                             {activeHtmlPage.columns.map((column) => (
                               <section key={column.side}>
-                                {column.blocks.map((block, index) => (
-                                  <RenderBlock
-                                    block={block}
-                                    query={readerQuery}
-                                    key={`${column.side}-${block.y}-${index}`}
-                                  />
-                                ))}
+                                {column.blocks.map((block, index) => {
+                                  const blockAudio = audioForBlock(
+                                    activeHtmlPage,
+                                    column.side,
+                                    block,
+                                    activePage.hotspots,
+                                  );
+                                  const shortPlayable =
+                                    blockAudio.length > 0 &&
+                                    normalizeTeachingText(block.text).length <= 3;
+                                  const blockKey = `${column.side}-${block.y}-${index}`;
+
+                                  if (shortPlayable) {
+                                    const hotspot = blockAudio[0];
+                                    const isActive =
+                                      activeAudio?.url === hotspot.audio;
+                                    return (
+                                      <article
+                                        className={`sound-lesson ${
+                                          isActive ? "is-active" : ""
+                                        } ${isActive && isPlaying ? "is-playing" : ""}`}
+                                        key={blockKey}
+                                      >
+                                        <button
+                                          type="button"
+                                          disabled={!hotspot.available}
+                                          aria-label={`${isActive && isPlaying ? "暫停" : "播放"} ${block.text}`}
+                                          aria-pressed={isActive && isPlaying}
+                                          onClick={() =>
+                                            playAudio(
+                                              hotspot.audio,
+                                              closestLine(
+                                                activeHtmlPage,
+                                                hotspot,
+                                              ),
+                                            )
+                                          }
+                                        >
+                                          {isActive && isPlaying ? "Ⅱ" : "▶"}
+                                        </button>
+                                        <div>
+                                          <strong>
+                                            <Highlight
+                                              text={block.text}
+                                              query={readerQuery}
+                                            />
+                                          </strong>
+                                          <small>點一下，邊看教材邊聽發音</small>
+                                        </div>
+                                        <span aria-hidden="true">
+                                          {String(
+                                            activePage.hotspots.findIndex(
+                                              (item) =>
+                                                item.id === hotspot.id,
+                                            ) + 1,
+                                          ).padStart(2, "0")}
+                                        </span>
+                                      </article>
+                                    );
+                                  }
+
+                                  return (
+                                    <div
+                                      className={`integrated-teaching-block ${
+                                        blockAudio.length > 0
+                                          ? "has-audio"
+                                          : ""
+                                      }`}
+                                      key={blockKey}
+                                    >
+                                      <RenderBlock
+                                        block={block}
+                                        query={readerQuery}
+                                      />
+                                      {blockAudio.length > 0 && (
+                                        <div
+                                          className="inline-block-audio"
+                                          aria-label={`${block.text}的真人發音`}
+                                        >
+                                          {blockAudio.map((hotspot) => {
+                                            const label = closestLine(
+                                              activeHtmlPage,
+                                              hotspot,
+                                            );
+                                            const isActive =
+                                              activeAudio?.url ===
+                                              hotspot.audio;
+                                            return (
+                                              <button
+                                                type="button"
+                                                key={hotspot.id}
+                                                disabled={!hotspot.available}
+                                                className={
+                                                  isActive ? "is-active" : ""
+                                                }
+                                                aria-label={`${isActive && isPlaying ? "暫停" : "播放"} ${label}`}
+                                                aria-pressed={
+                                                  isActive && isPlaying
+                                                }
+                                                onClick={() =>
+                                                  playAudio(
+                                                    hotspot.audio,
+                                                    label,
+                                                  )
+                                                }
+                                              >
+                                                <b aria-hidden="true">
+                                                  {isActive && isPlaying
+                                                    ? "Ⅱ"
+                                                    : "▶"}
+                                                </b>
+                                                <span>{label}</span>
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </section>
                             ))}
                           </div>

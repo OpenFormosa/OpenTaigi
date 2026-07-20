@@ -131,7 +131,10 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(component, /reading-sheet/);
   assert.match(component, /lesson-word-list/);
   assert.match(component, /lesson-sentence-list/);
-  assert.match(component, /lesson-audio-strip/);
+  assert.match(component, /audioForBlock/);
+  assert.match(component, /sound-lesson/);
+  assert.match(component, /inline-block-audio/);
+  assert.doesNotMatch(component, /className="lesson-audio-strip"/);
   assert.match(component, /教學模式/);
   assert.match(component, /layout-sheet/);
   assert.match(component, /readerQuery/);
@@ -156,6 +159,8 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(css, /\.level-picker/);
   assert.match(css, /\.personal-route/);
   assert.match(css, /\.hint-controls/);
+  assert.match(css, /\.sound-lesson/);
+  assert.match(css, /\.inline-block-audio/);
   assert.match(css, /\.game-console/);
   assert.match(css, /\.quiz-options/);
   assert.match(css, /@keyframes sound-pulse/);

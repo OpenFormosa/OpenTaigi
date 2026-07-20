@@ -1066,78 +1066,130 @@ mark {
   border-top: 1px solid var(--line);
 }
 
-.lesson-audio-strip {
-  margin-bottom: 36px;
-  border: 1px solid var(--line-strong);
-}
-
-.lesson-audio-strip > header {
-  min-height: 42px;
-  padding: 8px 11px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--inverse);
-  background: var(--ink);
-}
-
-.lesson-audio-strip > header span {
-  font-weight: 900;
-}
-
-.lesson-audio-strip > header small {
-  font-size: 10px;
-}
-
-.lesson-audio-strip > div {
+.sound-lesson {
+  min-height: 84px;
+  margin: 4px 0 12px;
+  padding: 13px 14px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.lesson-audio-strip button {
-  min-height: 54px;
-  padding: 8px 10px;
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 14px;
   align-items: center;
-  text-align: left;
-  background: var(--surface);
-  border: 0;
-  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--green) 4%, var(--surface));
+  border: 1px solid var(--line);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
-.lesson-audio-strip button:nth-child(odd) {
-  border-right: 1px solid var(--line);
+.sound-lesson.is-active {
+  background: color-mix(in srgb, var(--green) 10%, var(--surface));
+  border-color: var(--green);
+  box-shadow: inset 5px 0 0 var(--green);
 }
 
-.lesson-audio-strip button:hover {
-  color: var(--green);
-  background: color-mix(in srgb, var(--green) 7%, var(--surface));
-}
-
-.lesson-audio-strip button > b {
-  width: 26px;
-  height: 26px;
+.sound-lesson > button {
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
   color: var(--inverse);
   background: var(--red);
+  border: 0;
   border-radius: 50%;
-  font-size: 9px;
-}
-
-.lesson-audio-strip button > span {
-  overflow: hidden;
   font-size: 12px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 900;
 }
 
-.lesson-audio-strip button > small {
+.sound-lesson.is-playing > button {
+  animation: sound-pulse 1.2s ease-in-out infinite;
+}
+
+.sound-lesson > button:hover {
+  transform: scale(1.04);
+}
+
+.sound-lesson > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.sound-lesson strong {
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", var(--serif);
+  font-size: calc(31px * var(--font-scale));
+  line-height: 1.1;
+}
+
+.sound-lesson small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.sound-lesson > span {
   color: var(--muted);
   font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.integrated-teaching-block.has-audio {
+  margin: 18px 0 24px;
+  padding: 18px;
+  background: color-mix(in srgb, var(--ochre) 7%, var(--surface));
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--green);
+}
+
+.integrated-teaching-block.has-audio > :first-child {
+  margin-top: 0;
+}
+
+.inline-block-audio {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inline-block-audio button {
+  min-height: 38px;
+  padding: 7px 12px 7px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--green);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.inline-block-audio button b {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--inverse);
+  background: var(--green);
+  border-radius: 50%;
+  font-size: 8px;
+}
+
+.inline-block-audio button:hover,
+.inline-block-audio button.is-active {
+  color: var(--inverse);
+  background: var(--green);
+}
+
+.inline-block-audio button.is-active b {
+  color: var(--green);
+  background: var(--surface);
 }
 
 .reading-flow h3 {
@@ -3158,12 +3210,23 @@ mark {
     font-size: calc(28px * var(--font-scale));
   }
 
-  .lesson-audio-strip > div {
-    grid-template-columns: 1fr;
+  .sound-lesson {
+    padding-inline: 11px;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 11px;
   }
 
-  .lesson-audio-strip button:nth-child(odd) {
-    border-right: 0;
+  .sound-lesson > button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .sound-lesson strong {
+    font-size: calc(27px * var(--font-scale));
+  }
+
+  .integrated-teaching-block.has-audio {
+    padding: 15px;
   }
 
   .lesson-intro {
