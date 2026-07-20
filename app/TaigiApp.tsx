@@ -1209,6 +1209,7 @@ export function TaigiApp() {
                     <button
                       key={book.id}
                       className={activeBookId === book.id ? "active" : ""}
+                      aria-pressed={activeBookId === book.id}
                       onClick={() => openBook(book.id)}
                       style={{ "--book-color": book.accent } as CSSProperties}
                     >
@@ -1240,20 +1241,48 @@ export function TaigiApp() {
                 {activeBook && activeHtmlPage && activePage ? (
                   <>
                     <header className="reader-header">
-                      <div>
+                      <div className="reader-title">
                         <p>
                           {activeBook.number} / {activeBook.series} / HTML EDITION
                         </p>
                         <h2>{activeBook.title}</h2>
                       </div>
-                      <div className="reader-status">
-                        <span>先聽</span>
-                        <span>跟讀</span>
-                        <span>練習</span>
-                      </div>
+                      <nav
+                        className="reader-page-controls"
+                        aria-label="教材頁面導覽"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => goToPage(pageNumber - 1)}
+                          disabled={pageNumber === 1}
+                        >
+                          <b aria-hidden="true">←</b>
+                          <span>上一頁</span>
+                        </button>
+                        <div>
+                          <span>本冊位置</span>
+                          <strong>
+                            {pageNumber}
+                            <small> / {activeBook.pageCount}</small>
+                          </strong>
+                          <progress
+                            value={pageNumber}
+                            max={activeBook.pageCount}
+                            aria-label={`目前在第 ${pageNumber} 頁，共 ${activeBook.pageCount} 頁`}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => goToPage(pageNumber + 1)}
+                          disabled={pageNumber === activeBook.pageCount}
+                        >
+                          <span>下一頁</span>
+                          <b aria-hidden="true">→</b>
+                        </button>
+                      </nav>
                     </header>
 
-                    <div className="reader-tools">
+                    <div className="reader-tools" aria-label="閱讀設定">
                       <div className="view-switch" aria-label="閱讀模式">
                         <button
                           className={readerView === "reading" ? "active" : ""}
@@ -1327,9 +1356,11 @@ export function TaigiApp() {
                         <header>
                           <span>
                             {activeBook.number} · {activeBook.series}
+                            {activePage.hotspots.length > 0 &&
+                              ` · ${activePage.hotspots.length} 段真人發音`}
                           </span>
                           <strong>
-                            第 {pageNumber} / {activeBook.pageCount} 頁
+                            {completed.has(pageKey) ? "✓ 本頁已完成" : "本頁學習中"}
                           </strong>
                         </header>
                         {pageVocabulary.length > 0 ? (
@@ -1356,19 +1387,33 @@ export function TaigiApp() {
                                   hintMode !== "challenge" || manuallyRevealed;
                                 const showMeaning =
                                   hintMode === "full" || manuallyRevealed;
+                                const isWordAudio =
+                                  activeAudio?.url === entry.audioA;
+                                const isExampleAudio =
+                                  activeAudio?.url === entry.audioB;
                                 return (
-                                  <article key={entry.id}>
+                                  <article
+                                    className={
+                                      isWordAudio || isExampleAudio
+                                        ? "is-listening"
+                                        : ""
+                                    }
+                                    key={entry.id}
+                                  >
                                     <span className="lesson-word-number">
                                       {entry.number}
                                     </span>
                                     <button
-                                      className="lesson-word-play"
+                                      className={`lesson-word-play ${
+                                        isWordAudio ? "is-active" : ""
+                                      }`}
                                       onClick={() =>
                                         playAudio(entry.audioA, entry.headword)
                                       }
-                                      aria-label={`播放${entry.headword}`}
+                                      aria-label={`${isWordAudio && isPlaying ? "暫停" : "播放"}${entry.headword}`}
+                                      aria-pressed={isWordAudio && isPlaying}
                                     >
-                                      ▶
+                                      {isWordAudio && isPlaying ? "Ⅱ" : "▶"}
                                     </button>
                                     <div className="lesson-word-main">
                                       <strong>{entry.headword}</strong>
@@ -1404,7 +1449,9 @@ export function TaigiApp() {
                                       </small>
                                     </button>
                                     <button
-                                      className="lesson-example-play"
+                                      className={`lesson-example-play ${
+                                        isExampleAudio ? "is-active" : ""
+                                      }`}
                                       onClick={() =>
                                         playAudio(
                                           entry.audioB,
@@ -1412,8 +1459,13 @@ export function TaigiApp() {
                                         )
                                       }
                                       disabled={!entry.audioB}
+                                      aria-pressed={
+                                        isExampleAudio && isPlaying
+                                      }
                                     >
-                                      B · 聽例詞
+                                      {isExampleAudio && isPlaying
+                                        ? "Ⅱ 暫停例詞"
+                                        : "B · 聽例詞"}
                                     </button>
                                   </article>
                                 );
@@ -1448,22 +1500,38 @@ export function TaigiApp() {
                                     manuallyRevealed;
                                   const showMeaning =
                                     hintMode === "full" || manuallyRevealed;
+                                  const sentenceUrl =
+                                    sentenceAudio(sentence);
+                                  const isSentenceAudio =
+                                    activeAudio?.url === sentenceUrl;
                                   return (
-                                    <article key={sentence.id}>
+                                    <article
+                                      className={
+                                        isSentenceAudio ? "is-listening" : ""
+                                      }
+                                      key={sentence.id}
+                                    >
                                       <span>
                                         {String(sentence.order).padStart(2, "0")}
                                       </span>
                                       <button
-                                        className="lesson-sentence-play"
+                                        className={`lesson-sentence-play ${
+                                          isSentenceAudio ? "is-active" : ""
+                                        }`}
                                         onClick={() =>
                                           playAudio(
-                                            sentenceAudio(sentence),
+                                            sentenceUrl,
                                             sentence.hanji,
                                           )
                                         }
-                                        aria-label={`播放${sentence.hanji}`}
+                                        aria-label={`${isSentenceAudio && isPlaying ? "暫停" : "播放"}${sentence.hanji}`}
+                                        aria-pressed={
+                                          isSentenceAudio && isPlaying
+                                        }
                                       >
-                                        ▶
+                                        {isSentenceAudio && isPlaying
+                                          ? "Ⅱ"
+                                          : "▶"}
                                       </button>
                                       <div>
                                         <strong>{sentence.hanji}</strong>
@@ -2452,7 +2520,12 @@ export function TaigiApp() {
       />
 
       {activeAudio && (
-        <div className="audio-dock" role="region" aria-label="發音播放器">
+        <div
+          className="audio-dock"
+          role="region"
+          aria-label="發音播放器"
+          aria-live="polite"
+        >
           <button
             className="dock-play"
             onClick={() => playAudio(activeAudio.url, activeAudio.label)}

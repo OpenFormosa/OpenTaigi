@@ -72,7 +72,10 @@ test("includes OpenFormosa styling and responsive interaction", async () => {
   assert.match(css, /--green:\s*#0b6b50/);
   assert.match(css, /background-size: 28px 28px/);
   assert.match(css, /:focus-visible/);
+  assert.match(css, /@media \(pointer: coarse\)/);
+  assert.match(css, /@media \(forced-colors: active\)/);
   assert.match(css, /prefers-reduced-motion/);
+  assert.match(css, /safe-area-inset-bottom/);
 });
 
 test("ships every PDF page as HTML text plus its audio map", async () => {
@@ -141,6 +144,9 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(component, /showAudio/);
   assert.match(component, /empty-state/);
   assert.match(component, /audio-dock/);
+  assert.match(component, /reader-page-controls/);
+  assert.match(component, /is-listening/);
+  assert.match(component, /aria-live="polite"/);
   assert.match(component, /opentaigi-learner-level/);
   assert.match(component, /learnerLevels/);
   assert.match(component, /hintMode/);
@@ -161,7 +167,23 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(css, /\.hint-controls/);
   assert.match(css, /\.sound-lesson/);
   assert.match(css, /\.inline-block-audio/);
+  assert.match(css, /\.reader-page-controls/);
   assert.match(css, /\.game-console/);
   assert.match(css, /\.quiz-options/);
   assert.match(css, /@keyframes sound-pulse/);
+});
+
+test("documents the shared design-system and mobile learning rules", async () => {
+  const designSystem = await readFile(
+    new URL("../docs/design-system.md", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(designSystem, /awesome-design-skills/);
+  assert.match(designSystem, /67 套設計技能/);
+  assert.match(designSystem, /44 × 44 px/);
+  assert.match(designSystem, /safe-area-inset-bottom/);
+  assert.match(designSystem, /default/);
+  assert.match(designSystem, /focus-visible/);
+  assert.match(designSystem, /active／playing/);
 });
