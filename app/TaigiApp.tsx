@@ -456,6 +456,15 @@ function Highlight({
   );
 }
 
+function cleanTeachingText(value: string) {
+  return value
+    .replace(/[▲◆◇]/g, "")
+    .replace(/(\p{Script=Han})\s+(?=\p{Script=Han})/gu, "$1")
+    .replace(/\s+([，。；：！？、）】》])/g, "$1")
+    .replace(/([（【《])\s+/g, "$1")
+    .trim();
+}
+
 function RenderBlock({
   block,
   query,
@@ -463,15 +472,32 @@ function RenderBlock({
   block: HtmlBlock;
   query: string;
 }) {
-  const normalized = block.text.trim();
+  const normalized = cleanTeachingText(block.text);
+  const segments =
+    block.role === "body" && /[▲◆◇]/.test(block.text) && normalized.length > 180
+      ? (normalized.match(/[^。！？]+[。！？]?/g) ?? [normalized])
+          .map((segment) => segment.trim())
+          .filter(Boolean)
+      : [normalized];
   if (!normalized || /^[—–─-]+$/.test(normalized)) return null;
-  const content = <Highlight text={block.text} query={query} />;
+  const content = <Highlight text={normalized} query={query} />;
   if (block.role === "title") return <h3>{content}</h3>;
   if (block.role === "heading" && normalized.length <= 3) {
     return <span className="inline-term">{content}</span>;
   }
   if (block.role === "heading") return <h4>{content}</h4>;
   if (block.role === "note") return <aside>{content}</aside>;
+  if (segments.length > 1) {
+    return (
+      <div className="split-reading-block">
+        {segments.map((segment, index) => (
+          <p key={`${segment}-${index}`}>
+            <Highlight text={segment} query={query} />
+          </p>
+        ))}
+      </div>
+    );
+  }
   return <p>{content}</p>;
 }
 
@@ -486,7 +512,7 @@ function closestLine(page: HtmlPage | null, hotspot: Hotspot) {
     },
     null,
   );
-  const text = match?.line.text.trim() || hotspot.label;
+  const text = cleanTeachingText(match?.line.text || hotspot.label);
   return text.length > 38 ? `${text.slice(0, 38)}…` : text;
 }
 
@@ -636,6 +662,209 @@ const toneLessons = [
     example: "毒",
   },
 ];
+
+type ReferenceRow = {
+  y: number;
+  items: HtmlLine[];
+};
+
+function referenceRowsForSide(
+  page: HtmlPage,
+  side: "left" | "right",
+): ReferenceRow[] {
+  const source = page.lines
+    .filter(
+      (line) =>
+        line.column === side &&
+        line.role !== "meta" &&
+        cleanTeachingText(line.text),
+    )
+    .sort((first, second) => first.y - second.y || first.x - second.x);
+  const rows: ReferenceRow[] = [];
+
+  source.forEach((line) => {
+    const previous = rows[rows.length - 1];
+    if (previous && Math.abs(previous.y - line.y) <= 0.72) {
+      previous.items.push(line);
+      previous.y =
+        previous.items.reduce((sum, item) => sum + item.y, 0) /
+        previous.items.length;
+      return;
+    }
+    rows.push({ y: line.y, items: [line] });
+  });
+
+  return rows;
+}
+
+function StructuredPronunciationPage({
+  htmlPage,
+  page,
+  activeAudio,
+  isPlaying,
+  query,
+  onPlay,
+}: {
+  htmlPage: HtmlPage;
+  page: BookPage;
+  activeAudio: { url: string; label: string } | null;
+  isPlaying: boolean;
+  query: string;
+  onPlay: (url: string, label: string) => void;
+}) {
+  return (
+    <div className="structured-pronunciation-page">
+      {(["left", "right"] as const).map((side) => {
+        const rows = referenceRowsForSide(htmlPage, side);
+        if (!rows.length) return null;
+        const dense = rows.some((row) => row.items.length >= 6);
+        const maxColumns = Math.max(
+          ...rows.map((row) => row.items.length),
+          1,
+        );
+        const panelLines = rows.flatMap((row) => row.items);
+        const hotspotTargets = new Map<string, HtmlLine>();
+        page.hotspots
+          .filter((hotspot) => (hotspot.x < 50 ? "left" : "right") === side)
+          .forEach((hotspot) => {
+            const target = panelLines.reduce<{
+              line: HtmlLine;
+              distance: number;
+            } | null>((best, line) => {
+              const distance =
+                Math.abs(line.y - hotspot.y) * 1.8 +
+                Math.abs(line.x - hotspot.x);
+              return !best || distance < best.distance
+                ? { line, distance }
+                : best;
+            }, null);
+            if (target) hotspotTargets.set(hotspot.id, target.line);
+          });
+        const panelLinesInOrder = rows.flatMap((row) => row.items);
+        const titleSource =
+          panelLinesInOrder.find((line) => {
+            const text = cleanTeachingText(line.text);
+            return (
+              text.includes("目錄") ||
+              text.includes("篇") ||
+              /^[（(][一二三四五六七八九十]+[）)]/.test(text)
+            );
+          }) ??
+          panelLinesInOrder.find(
+            (line) =>
+              line.role === "title" &&
+              cleanTeachingText(line.text).length >= 5,
+          ) ??
+          rows
+            .flatMap((row) => row.items)
+            .find(
+              (line) =>
+                line.role === "heading" &&
+                cleanTeachingText(line.text).length >= 5,
+            );
+        const rawPanelTitle =
+          (titleSource && cleanTeachingText(titleSource.text)) ??
+          (side === "left" ? "這頁頭一部分" : "這頁第二部分");
+        const panelTitle =
+          rawPanelTitle.length > 30
+            ? `${rawPanelTitle.slice(0, 30)}…`
+            : rawPanelTitle;
+        return (
+          <section
+            className={`structured-reference-panel ${dense ? "is-dense" : ""}`}
+            aria-label={`${side === "left" ? "左頁" : "右頁"}教材內容`}
+            key={side}
+          >
+            <header>
+              <span>{side === "left" ? "A" : "B"}</span>
+              <div>
+                <small>STRUCTURED HTML</small>
+                <strong>{panelTitle}</strong>
+              </div>
+              {dense && <em>表格可左右滑</em>}
+            </header>
+            <div className="structured-reference-scroll">
+              <div
+                className="structured-reference-grid"
+                style={
+                  {
+                    "--reference-min-width": `${Math.max(620, maxColumns * 96)}px`,
+                  } as CSSProperties
+                }
+              >
+                {rows.map((row, rowIndex) => {
+                  const proseRow =
+                    row.items.length === 1 &&
+                    cleanTeachingText(row.items[0].text).length > 22;
+                  const headingRow = row.items.some(
+                    (item) =>
+                      item.role === "title" ||
+                      (item.role === "heading" &&
+                        cleanTeachingText(item.text).length > 8),
+                  );
+                  return (
+                    <div
+                      className={`structured-reference-row ${
+                        proseRow ? "is-prose" : ""
+                      } ${headingRow ? "is-heading" : ""} ${
+                        row.items.length === 1 ? "is-single" : ""
+                      }`}
+                      style={{
+                        gridTemplateColumns: `repeat(${row.items.length}, minmax(0, 1fr))`,
+                      }}
+                      key={`${side}-${row.y}-${rowIndex}`}
+                    >
+                      {row.items.map((line, lineIndex) => {
+                        const text = cleanTeachingText(line.text);
+                        const attached = page.hotspots.filter(
+                          (hotspot) => hotspotTargets.get(hotspot.id) === line,
+                        );
+                        return (
+                          <div
+                            className={`structured-reference-cell ${line.role}`}
+                            key={`${line.x}-${line.y}-${lineIndex}`}
+                          >
+                            <span>
+                              <Highlight text={text} query={query} />
+                            </span>
+                            {attached.length > 0 && (
+                              <div className="structured-cell-audio">
+                                {attached.map((hotspot) => {
+                                  const label = text || closestLine(htmlPage, hotspot);
+                                  const isActive =
+                                    activeAudio?.url === hotspot.audio;
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={hotspot.id}
+                                      disabled={!hotspot.available}
+                                      className={isActive ? "is-active" : ""}
+                                      aria-label={`${isActive && isPlaying ? "暫停" : "播放"} ${label}`}
+                                      aria-pressed={isActive && isPlaying}
+                                      onClick={() =>
+                                        onPlay(hotspot.audio, label)
+                                      }
+                                    >
+                                      {isActive && isPlaying ? "Ⅱ" : "▶"}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
 
 function PronunciationReferencePage({
   page,
@@ -1265,6 +1494,25 @@ export function TaigiApp() {
       )
     : null;
   const pageIsComplete = completed.has(pageKey);
+  const hasSentenceLesson = sentencePageGroups.some(
+    (group) => group.sentences.length > 0,
+  );
+  const readerPageKind =
+    pageNumber === 1
+      ? "cover"
+      : activeBookId === "pronunciation" && pageNumber === 4
+        ? "pronunciation-reference"
+        : activeBookId === "pronunciation" &&
+            pageNumber >= 3 &&
+            pageNumber <= 19
+          ? "pronunciation-structured"
+          : pageVocabulary.length > 0
+            ? "vocabulary"
+            : hasSentenceLesson
+              ? "sentences"
+              : activeBookId.startsWith("articles-")
+                ? "article"
+                : "narrative";
 
   return (
     <div className="site-shell" id="top">
@@ -1549,6 +1797,7 @@ export function TaigiApp() {
                         >
                           <button
                             type="button"
+                            aria-label="上一頁"
                             onClick={() => goToPage(pageNumber - 1)}
                             disabled={pageNumber === 1}
                           >
@@ -1569,6 +1818,7 @@ export function TaigiApp() {
                           </div>
                           <button
                             type="button"
+                            aria-label="下一頁"
                             onClick={() => goToPage(pageNumber + 1)}
                             disabled={pageNumber === activeBook.pageCount}
                           >
@@ -1708,6 +1958,9 @@ export function TaigiApp() {
                     {readerView === "reading" ? (
                       <article
                         className="reading-sheet"
+                        data-book-id={activeBookId}
+                        data-page-number={pageNumber}
+                        data-page-kind={readerPageKind}
                         style={{ "--font-scale": fontScale } as CSSProperties}
                       >
                         <header>
@@ -1723,6 +1976,17 @@ export function TaigiApp() {
                         {activeBookId === "pronunciation" &&
                         pageNumber === 4 ? (
                           <PronunciationReferencePage
+                            page={activePage}
+                            activeAudio={activeAudio}
+                            isPlaying={isPlaying}
+                            query={readerQuery}
+                            onPlay={playAudio}
+                          />
+                        ) : activeBookId === "pronunciation" &&
+                          pageNumber >= 3 &&
+                          pageNumber <= 19 ? (
+                          <StructuredPronunciationPage
+                            htmlPage={activeHtmlPage}
                             page={activePage}
                             activeAudio={activeAudio}
                             isPlaying={isPlaying}
@@ -1789,31 +2053,41 @@ export function TaigiApp() {
                                           : "台羅先收起來"}
                                       </i>
                                     </div>
-                                    <button
-                                      className={`lesson-word-meaning ${
-                                        showMeaning ? "revealed" : ""
-                                      }`}
-                                      onClick={() => {
-                                        const next = new Set(revealedWords);
-                                        if (manuallyRevealed) {
-                                          next.delete(entry.id);
-                                        } else {
-                                          next.add(entry.id);
-                                        }
-                                        setRevealedWords(next);
-                                      }}
-                                    >
-                                      <span>
-                                        {showMeaning
-                                          ? entry.meaning
-                                          : "想看覓，閣揭答案"}
-                                      </span>
-                                      <small>
-                                        {showMeaning && entry.examples
-                                          ? entry.examples
-                                          : "按一下顯示華語佮例詞"}
-                                      </small>
-                                    </button>
+                                    {hintMode === "full" ? (
+                                      <div
+                                        className="lesson-word-meaning revealed is-static"
+                                        aria-label={`${entry.headword}的華語和例詞`}
+                                      >
+                                        <span>{entry.meaning}</span>
+                                        <small>{entry.examples}</small>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        className={`lesson-word-meaning ${
+                                          showMeaning ? "revealed" : ""
+                                        }`}
+                                        onClick={() => {
+                                          const next = new Set(revealedWords);
+                                          if (manuallyRevealed) {
+                                            next.delete(entry.id);
+                                          } else {
+                                            next.add(entry.id);
+                                          }
+                                          setRevealedWords(next);
+                                        }}
+                                      >
+                                        <span>
+                                          {showMeaning
+                                            ? entry.meaning
+                                            : "想看覓，閣揭答案"}
+                                        </span>
+                                        <small>
+                                          {showMeaning && entry.examples
+                                            ? entry.examples
+                                            : "按一下顯示華語佮例詞"}
+                                        </small>
+                                      </button>
+                                    )}
                                     <button
                                       className={`lesson-example-play ${
                                         isExampleAudio ? "is-active" : ""
@@ -1838,9 +2112,7 @@ export function TaigiApp() {
                               })}
                             </div>
                           </div>
-                        ) : sentencePageGroups.some(
-                            (group) => group.sentences.length > 0,
-                          ) ? (
+                        ) : hasSentenceLesson ? (
                           <div className="lesson-page sentence-lesson">
                             <header className="lesson-intro">
                               <div>
@@ -1905,25 +2177,34 @@ export function TaigiApp() {
                                           <i>{sentence.lomaji}</i>
                                         )}
                                       </div>
-                                      <button
-                                        className={`lesson-sentence-hint ${
-                                          showMeaning ? "revealed" : ""
-                                        }`}
-                                        onClick={() => {
-                                          const next =
-                                            new Set(revealedSentences);
-                                          if (manuallyRevealed) {
-                                            next.delete(sentence.id);
-                                          } else {
-                                            next.add(sentence.id);
-                                          }
-                                          setRevealedSentences(next);
-                                        }}
-                                      >
-                                        {showMeaning
-                                          ? sentence.huagi
-                                          : "揭開華語提示"}
-                                      </button>
+                                      {hintMode === "full" ? (
+                                        <div
+                                          className="lesson-sentence-hint revealed is-static"
+                                          aria-label={`${sentence.hanji}的華語提示`}
+                                        >
+                                          {sentence.huagi}
+                                        </div>
+                                      ) : (
+                                        <button
+                                          className={`lesson-sentence-hint ${
+                                            showMeaning ? "revealed" : ""
+                                          }`}
+                                          onClick={() => {
+                                            const next =
+                                              new Set(revealedSentences);
+                                            if (manuallyRevealed) {
+                                              next.delete(sentence.id);
+                                            } else {
+                                              next.add(sentence.id);
+                                            }
+                                            setRevealedSentences(next);
+                                          }}
+                                        >
+                                          {showMeaning
+                                            ? sentence.huagi
+                                            : "揭開華語提示"}
+                                        </button>
+                                      )}
                                     </article>
                                   );
                                 }),

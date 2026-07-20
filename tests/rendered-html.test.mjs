@@ -158,6 +158,13 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(component, /reader-focus-toggle/);
   assert.match(component, /lesson-finish/);
   assert.match(component, /PronunciationReferencePage/);
+  assert.match(component, /StructuredPronunciationPage/);
+  assert.match(component, /cleanTeachingText/);
+  assert.match(component, /data-page-kind=\{readerPageKind\}/);
+  assert.match(component, /aria-label="上一頁"/);
+  assert.match(component, /aria-label="下一頁"/);
+  assert.match(component, /lesson-word-meaning revealed is-static/);
+  assert.match(component, /lesson-sentence-hint revealed is-static/);
   assert.match(component, /toneLessons/);
   assert.match(component, /vowel-table/);
   assert.match(component, /tone-learning-grid/);
@@ -191,6 +198,9 @@ test("supports reflow, source layout, search, progress, and empty states", async
   assert.match(css, /\.lesson-session-strip/);
   assert.match(css, /\.lesson-finish/);
   assert.match(css, /\.pronunciation-reference-page/);
+  assert.match(css, /\.structured-pronunciation-page/);
+  assert.match(css, /\.structured-reference-panel\.is-dense/);
+  assert.match(css, /\.split-reading-block/);
   assert.match(css, /\.vowel-reference-layout/);
   assert.match(css, /\.tone-learning-grid/);
   assert.match(css, /\.tone-card\.is-listening/);
@@ -215,4 +225,27 @@ test("documents the shared design-system and mobile learning rules", async () =>
   assert.match(designSystem, /閱讀工作階段/);
   assert.match(designSystem, /W3C Reflow/);
   assert.match(designSystem, /Khan Academy Course and Unit Mastery/);
+  assert.match(designSystem, /217 頁/);
+  assert.match(designSystem, /內層橫向捲動/);
+});
+
+test("audits every teaching page against its intended renderer", async () => {
+  const [packageJson, auditScript] = await Promise.all([
+    readFile(new URL("../package.json", import.meta.url), "utf8").then(
+      JSON.parse,
+    ),
+    readFile(
+      new URL("../scripts/audit_learning_pages.mjs", import.meta.url),
+      "utf8",
+    ),
+  ]);
+
+  assert.equal(
+    packageJson.scripts["audit:pages"],
+    "node scripts/audit_learning_pages.mjs",
+  );
+  assert.match(auditScript, /rendererFor/);
+  assert.match(auditScript, /table-like-page-uses-generic-renderer/);
+  assert.match(auditScript, /missing-html-page/);
+  assert.match(auditScript, /missing-page-image/);
 });
