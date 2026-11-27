@@ -59,3 +59,9 @@ python scripts/build_html_curriculum.py /path/to/Lan-Lai-Oh-Taigi
 ## 資料來源
 
 教材著作權與授權依原始來源為準。網站程式不更動原始語句、羅馬字與音檔內容。
+
+## 授權 / License
+
+本 repository 的程式碼與原創文件以 [Apache License 2.0](LICENSE) 釋出，© 2026 OpenFormosa contributors。教育部教材的語句、羅馬字與音檔不在此授權範圍內，仍依原始來源的條款使用。
+
+Code and original documentation are released under the [Apache License 2.0](LICENSE). Ministry of Education course materials (sentences, romanization, audio) are not covered and remain under their original terms.
