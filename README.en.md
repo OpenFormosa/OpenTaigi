@@ -2,7 +2,7 @@
 
 # OpenTaigi
 
-OpenTaigi (咱來學台語, "Let's learn Taigi") is an interactive Taigi learning site for phone and desktop. It turns public materials from the Ministry of Education course *Lán Lâi O̍h Tâi-uân Bân-lâm-gí* and [Taiwanese-Corpus/Lan-Lai-Oh-Taigi](https://github.com/Taiwanese-Corpus/Lan-Lai-Oh-Taigi) into searchable lessons with practice and native-speaker audio.
+OpenTaigi (咱來學台語, "Let's learn Taigi") is an interactive Taigi learning site for phone and desktop. It turns public materials from the Ministry of Education course 《咱來學臺灣閩南語》 and [Taiwanese-Corpus/Lan-Lai-Oh-Taigi](https://github.com/Taiwanese-Corpus/Lan-Lai-Oh-Taigi) into searchable lessons with practice and native-speaker audio.
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-0b6b50?style=flat-square" alt="License: Apache 2.0"></a>
